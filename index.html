@@ -6,6 +6,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#e31e24">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none';">
+<meta name="referrer" content="no-referrer">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
 <title>MoSy — Performance Project</title>
@@ -91,11 +93,51 @@ document.getElementById('top-date').textContent=new Date().toLocaleDateString('i
 
 // STORAGE
 const SK='mosy_v1';
-let S=(()=>{try{const r=localStorage.getItem(SK);return r?JSON.parse(r):null;}catch{return null;}})() || {
+const SK_BACKUP=SK+'_backup';
+const SK_META=SK+'_meta';
+function loadStateWithRecovery(){
+  try{
+    const primary=localStorage.getItem(SK);
+    if(primary){
+      const parsed=JSON.parse(primary);
+      if(parsed && Array.isArray(parsed.athletes) && Array.isArray(parsed.tlm)) return parsed;
+    }
+  }catch(e){console.warn('Dati primari corrotti, tento ripristino da backup:',e);}
+  try{
+    const backup=localStorage.getItem(SK_BACKUP);
+    if(backup){
+      const parsed=JSON.parse(backup);
+      if(parsed && Array.isArray(parsed.athletes)){
+        console.info('Stato ripristinato da backup di sicurezza.');
+        return parsed;
+      }
+    }
+  }catch(e){console.error('Anche il backup è corrotto:',e);}
+  return null;
+}
+let S=loadStateWithRecovery() || {
   athletes:[{id:'a1',name:'Atleta',surname:'1',weight:70,height:1.75,age:16,sex:'M',fcmax:195,rhr:55,notes:''},{id:'a2',name:'Atleta',surname:'2',weight:65,height:1.72,age:16,sex:'M',fcmax:198,rhr:58,notes:''}],
-  tlm:[],hoopers:[],injuries:[],vam:[],lvp:[],gps:[],trimp:[],zscore:[],inol:[],weekly:[],macro:[],weights:[],nutritionNotes:'',feedbacks:[]
+  tlm:[],hoopers:[],injuries:[],vam:[],lvp:[],gps:[],trimp:[],zscore:[],inol:[],weekly:[],macro:[],weights:[],nutritionNotes:'',feedbacks:[],vdecTests:[]
 };
-const save=()=>{try{localStorage.setItem(SK,JSON.stringify(S));}catch(e){console.warn(e);}};
+let _saveDebounce=null;
+const save=()=>{
+  clearTimeout(_saveDebounce);
+  _saveDebounce=setTimeout(_doSave,80);
+};
+function _doSave(){
+  try{
+    const json=JSON.stringify(S);
+    localStorage.setItem(SK,json);
+    localStorage.setItem(SK_BACKUP,json);
+    localStorage.setItem(SK_META,JSON.stringify({lastSave:Date.now(),size:json.length,athletes:S.athletes.length,sessions:S.tlm.length}));
+  }catch(e){
+    console.warn('Errore salvataggio principale:',e);
+    try{
+      const minimal=JSON.stringify({...S,gps:[],vam:S.vam.slice(-20)});
+      localStorage.setItem(SK_BACKUP,minimal);
+    }catch(e2){console.error('Salvataggio di emergenza fallito:',e2);}
+  }
+}
 const rid=()=>Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,6);
 const athName=id=>{const a=S.athletes.find(x=>x.id==id);return a?`${a.name} ${a.surname}`.trim():String(id);};
 
@@ -117,7 +159,7 @@ const MODULES=[
   {id:'macro',label:'Macro-Mesociclo',icon:'🗓️'},
   {id:'nutrition',label:'Nutrition',icon:'🥗'},
   {id:'weight',label:'Peso Atleti',icon:'⚖️'},
-  {id:'export',label:'Backup Dati',icon:'💾'},
+  {id:'export',label:'Esporta Report',icon:'💾'},
   {id:'feedback',label:'Feedback',icon:'💬'},
 ];
 
@@ -156,6 +198,10 @@ const R={}, INI={};
 function render(id){C.innerHTML='';C.innerHTML=(R[id]||R.dashboard)();C.scrollTop=0;if(INI[id])INI[id]();}
 
 // HELPERS
+function esc(str){
+  if(str===null||str===undefined)return '';
+  return String(str).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
 const bdg=(t,c)=>`<span class="badge badge-${c||'in'}">${t}</span>`;
 const sH=(t,s)=>`<div class="section-title">${t}</div>${s?`<div class="section-sub">${s}</div>`:''}`;
 const mC=(l,v,u,c)=>`<div class="metric-card"><div class="metric-label">${l}</div><div class="metric-value"${c?` style="color:${c}"`:''}>${v??'—'}${u?`<span style="font-size:12px;color:var(--tx2);margin-left:3px">${u}</span>`:''}</div></div>`;
@@ -192,24 +238,89 @@ R.dashboard=()=>{
 };
 
 // ══ ATHLETES ══
-R.athletes=()=>`${sH('Gestione Atleti','Scheda anagrafica e parametri fisiologici')}
+R.athletes=()=>{
+  const editingId=window._editingAthId||null;
+  const editAth=editingId?S.athletes.find(a=>a.id===editingId):null;
+  return `${sH('Gestione Atleti','Scheda anagrafica e parametri fisiologici · Storico sessioni')}
 <div class="grid2">
-<div class="card"><div style="font-weight:500;font-size:13px;margin-bottom:12px">Nuovo atleta</div>
+<div class="card" id="ath-form-card" style="${editAth?'border:2px solid var(--pu)':''}">
+<div style="font-weight:500;font-size:13px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center">
+  <span>${editAth?`✏️ Modifica: ${editAth.name} ${editAth.surname}`:'Nuovo atleta'}</span>
+  ${editAth?'<button class="secondary" style="font-size:11px" onclick="cancelEditAth()">✕ Annulla</button>':''}
+</div>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:0 10px">
-${inp('an','Nome','text','')}${inp('as','Cognome','text','')}
-${inp('aw','Peso (kg)','number',70,'min=30 max=200 step=0.1')}${inp('ah','Altezza (m)','number',1.75,'min=1.0 max=2.2 step=0.01')}
-${inp('aa','Età','number',16,'min=10 max=60')}${sel('ax','Sesso',[{v:'M',l:'Maschio'},{v:'F',l:'Femmina'}],'M')}
-${inp('af','FC Max (bpm)','number',195,'min=150 max=220')}${inp('ar','FC Riposo (bpm)','number',55,'min=30 max=90')}
+${inp('an','Nome','text',editAth?editAth.name:'')}${inp('as','Cognome','text',editAth?editAth.surname:'')}
+${inp('aw','Peso (kg)','number',editAth?editAth.weight:70,'min=30 max=200 step=0.1')}${inp('ah','Altezza (m)','number',editAth?editAth.height:1.75,'min=1.0 max=2.2 step=0.01')}
+${inp('aa','Età','number',editAth?editAth.age:16,'min=10 max=60')}${sel('ax','Sesso',[{v:'M',l:'Maschio'},{v:'F',l:'Femmina'}],editAth?editAth.sex:'M')}
+${inp('af','FC Max (bpm)','number',editAth?editAth.fcmax:195,'min=150 max=220')}${inp('ar','FC Riposo (bpm)','number',editAth?editAth.rhr:55,'min=30 max=90')}
 </div>
 <div style="display:flex;gap:10px;align-items:center;margin:0 0 10px;font-size:13px">BMI: <strong id="abmi">—</strong> <span id="abmi-b"></span></div>
-${inp('ano','Note / Anamnesi','text','')}
-<button class="primary" onclick="addAth()">➕ Aggiungi atleta</button></div>
-<div class="card"><div style="font-weight:500;font-size:13px;margin-bottom:10px">Roster — ${S.athletes.length} atleti</div><div id="roster">${rosterHTML()}</div></div></div>`;
+${inp('ano','Note / Anamnesi','text',editAth?(editAth.notes||''):'')}
+<div style="display:flex;gap:8px">
+<button class="primary" onclick="${editAth?`updateAth('${editAth.id}')`:'addAth()'}" style="flex:1">${editAth?'💾 Salva modifiche':'➕ Aggiungi atleta'}</button>
+${editAth?`<button class="secondary" style="color:var(--erT)" onclick="delAth('${editAth.id}')">🗑️ Elimina</button>`:''}
+</div>
+</div>
+<div class="card"><div style="font-weight:500;font-size:13px;margin-bottom:10px">Roster — ${S.athletes.length} atleti <span style="font-size:11px;color:var(--tx2);font-weight:400">(tocca per modificare)</span></div><div id="roster">${rosterHTML()}</div></div>
+</div>
+${editAth?renderAthHistory(editAth.id):''}`;
+};
 INI.athletes=()=>{['aw','ah'].forEach(id=>document.getElementById(id)?.addEventListener('input',updBMI));updBMI();};
 function updBMI(){const w=+document.getElementById('aw')?.value||0,h=+document.getElementById('ah')?.value||0;if(h>0){const b=(w/(h*h)).toFixed(1);document.getElementById('abmi').textContent=b;const n=+b;document.getElementById('abmi-b').innerHTML=bdg(n<18.5?'Sottopeso':n<25?'Normopeso':n<30?'Sovrappeso':'Obeso',n<18.5?'wa':n<25?'ok':'er');}}
-function rosterHTML(){if(!S.athletes.length)return '<p style="color:var(--tx2);font-size:13px">Nessun atleta.</p>';return S.athletes.map(a=>{const b=a.height>0?(a.weight/(a.height*a.height)).toFixed(1):'—';return `<div style="padding:9px 0;border-bottom:.5px solid var(--bd);display:flex;justify-content:space-between;align-items:center"><div><div style="font-weight:500;font-size:13px">${a.name} ${a.surname}</div><div style="font-size:11px;color:var(--tx2)">${a.age}aa · ${a.weight}kg · ${Math.round(a.height*100)}cm · BMI ${b} · FCmax ${a.fcmax} · FCrep ${a.rhr}</div>${a.notes?`<div style="font-size:11px;color:var(--tx3)">📝 ${a.notes}</div>`:''}</div><button class="secondary" style="color:var(--erT)" onclick="delAth('${a.id}')">✕</button></div>`;}).join('');}
+function rosterHTML(){
+  if(!S.athletes.length)return '<p style="color:var(--tx2);font-size:13px">Nessun atleta.</p>';
+  const editingId=window._editingAthId;
+  return S.athletes.map(a=>{
+    const b=a.height>0?(a.weight/(a.height*a.height)).toFixed(1):'—';
+    const isEditing=a.id===editingId;
+    return `<div onclick="startEditAth('${a.id}')" style="padding:9px 8px;border-bottom:.5px solid var(--bd);display:flex;justify-content:space-between;align-items:center;cursor:pointer;border-radius:6px;background:${isEditing?'var(--pu-l)':'transparent'};transition:background .15s">
+      <div>
+        <div style="font-weight:500;font-size:13px">${isEditing?'✏️ ':''}${a.name} ${a.surname}</div>
+        <div style="font-size:11px;color:var(--tx2)">${a.age}aa · ${a.weight}kg · ${Math.round(a.height*100)}cm · BMI ${b} · FCmax ${a.fcmax} · FCrep ${a.rhr}</div>
+        ${a.notes?`<div style="font-size:11px;color:var(--tx3)">📝 ${esc(a.notes)}</div>`:''}
+      </div>
+      <span style="font-size:16px;color:var(--tx3);flex-shrink:0">›</span>
+    </div>`;
+  }).join('');
+}
+function startEditAth(id){
+  window._editingAthId=id;
+  render('athletes');
+  setTimeout(()=>document.getElementById('ath-form-card')?.scrollIntoView({behavior:'smooth',block:'start'}),50);
+}
+function cancelEditAth(){window._editingAthId=null;render('athletes');}
 function addAth(){const g=id=>document.getElementById(id)?.value;if(!g('an').trim()){alert('Inserisci il nome');return;}S.athletes.push({id:rid(),name:g('an').trim(),surname:g('as').trim(),weight:+g('aw'),height:+g('ah'),age:+g('aa'),sex:g('ax'),fcmax:+g('af'),rhr:+g('ar'),notes:g('ano')});save();render('athletes');}
-function delAth(id){if(confirm('Eliminare atleta?')){S.athletes=S.athletes.filter(a=>a.id!=id);save();render('athletes');}}
+function updateAth(id){
+  const g=k=>document.getElementById(k)?.value;
+  if(!g('an').trim()){alert('Inserisci il nome');return;}
+  const a=S.athletes.find(x=>x.id===id);
+  if(!a)return;
+  Object.assign(a,{name:g('an').trim(),surname:g('as').trim(),weight:+g('aw'),height:+g('ah'),age:+g('aa'),sex:g('ax'),fcmax:+g('af'),rhr:+g('ar'),notes:g('ano')});
+  save();
+  window._editingAthId=null;
+  render('athletes');
+}
+function delAth(id){if(confirm('Eliminare questo atleta? Le sue sessioni storiche NON verranno eliminate.')){S.athletes=S.athletes.filter(a=>a.id!=id);window._editingAthId=null;save();render('athletes');}}
+function renderAthHistory(athId){
+  const a=S.athletes.find(x=>x.id===athId);if(!a)return '';
+  const tlmCount=S.tlm.filter(e=>e.athleteId===athId).length;
+  const hooperCount=S.hoopers.filter(e=>e.athleteId===athId).length;
+  const vamCount=S.vam.filter(e=>e.athleteId===athId).length;
+  const gpsCount=S.gps.filter(e=>e.athleteId===athId).length;
+  const injCount=S.injuries.filter(e=>e.athleteId===athId).length;
+  const wCount=S.weights.filter(e=>e.athleteId===athId).length;
+  const fbCount=S.feedbacks.filter(e=>e.athleteId===athId).length;
+  const lastSessions=S.tlm.filter(e=>e.athleteId===athId).sort((x,y)=>y.date.localeCompare(x.date)).slice(0,8);
+  return `<div class="card" style="margin-top:14px">
+    <div style="font-weight:700;font-size:14px;margin-bottom:12px;text-transform:uppercase;letter-spacing:.5px">📂 Storico completo — ${a.name} ${a.surname}</div>
+    <div class="grid4" style="margin-bottom:14px">
+      ${mC('Sessioni TLM',tlmCount)}${mC('Hooper Index',hooperCount)}${mC('Test VAM',vamCount)}${mC('Sessioni GPS',gpsCount)}
+      ${mC('Infortuni',injCount,'',injCount>0?'var(--erT)':'')}${mC('Pesate',wCount)}${mC('Feedback',fbCount)}${mC('ID Atleta',athId.slice(0,8))}
+    </div>
+    <div style="font-weight:600;font-size:13px;margin-bottom:8px;color:var(--tx2)">Ultime sessioni di allenamento</div>
+    ${tbl(['Data','Tipo','Durata','RPE','sRPE','Esercizi'],lastSessions.map(e=>[e.date,e.type||'—',e.duration?e.duration+'min':'—',e.rpe||'—',e.srpe||'—',e.sessionData?((e.sessionData.exercises?.length||0)+(e.sessionData.aerobic?.length||0)+(e.sessionData.warmup?.length||0))+' es.':(e.exercise||'—')]),'Nessuna sessione registrata per questo atleta')}
+  </div>`;
+}
 
 // ══ TLM TEAM ══
 R.tlm_team=()=>`${sH('TLM Team Sport','sRPE · Monotonia · Strain · ACWR · TQR')}
@@ -654,8 +765,8 @@ function renderWUList(){
     <div style="display:flex;align-items:flex-start;gap:8px;padding:8px 0;border-bottom:.5px solid var(--bd)">
       <div style="background:var(--bg2);color:var(--pu);border-radius:6px;padding:2px 8px;font-size:11px;font-weight:600;white-space:nowrap;flex-shrink:0">${i+1}</div>
       <div style="flex:1;min-width:0">
-        <div style="font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${e.name}</div>
-        <div style="font-size:11px;color:var(--tx2)">${e.cat} · ${e.sets}×${e.reps} · ${e.rest}s riposo${e.notes?' · '+e.notes:''}</div>
+        <div style="font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(e.name)}</div>
+        <div style="font-size:11px;color:var(--tx2)">${e.cat} · ${e.sets}×${e.reps} · ${e.rest}s riposo${e.notes?' · '+esc(e.notes):''}</div>
       </div>
       <button onclick="removeWU(${i})" style="background:transparent;border:none;cursor:pointer;color:var(--erT);font-size:14px;flex-shrink:0;padding:0">✕</button>
     </div>`).join('');
@@ -694,11 +805,11 @@ function renderWODList(){
     <div style="display:flex;align-items:flex-start;gap:8px;padding:9px 0;border-bottom:.5px solid var(--bd)">
       <div style="background:var(--pu);color:#fff;border-radius:6px;padding:2px 8px;font-size:12px;font-weight:700;white-space:nowrap;flex-shrink:0">${i+1}</div>
       <div style="flex:1;min-width:0">
-        <div style="font-weight:700;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${e.name}</div>
+        <div style="font-weight:700;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(e.name)}</div>
         <div style="font-size:11px;color:var(--tx2);margin-top:2px">
-          ${e.sets}×${e.reps} rep${e.load?` · ${e.load}% 1RM`:''}${e.kg?` · ${e.kg}kg`:''} · ${e.rest}s rest${e.tempo?' · Tempo: '+e.tempo:''}
+          ${e.sets}×${e.reps} rep${e.load?` · ${e.load}% 1RM`:''}${e.kg?` · ${e.kg}kg`:''} · ${e.rest}s rest${e.tempo?' · Tempo: '+esc(e.tempo):''}
         </div>
-        <div style="font-size:11px;color:var(--pu);font-weight:500">INOL: ${e.inol.toFixed(3)}${e.notes?' · '+e.notes:''}</div>
+        <div style="font-size:11px;color:var(--pu);font-weight:500">INOL: ${e.inol.toFixed(3)}${e.notes?' · '+esc(e.notes):''}</div>
       </div>
       <div style="display:flex;flex-direction:column;gap:3px;flex-shrink:0">
         <button onclick="moveEx(${i},-1)" style="background:transparent;border:none;cursor:pointer;color:var(--tx2);font-size:12px;padding:0">▲</button>
@@ -738,10 +849,10 @@ function updSessionSummary(){
       </div>
     </div>
     ${wu.length?`<div style="margin-bottom:16px"><div style="font-weight:700;font-size:13px;color:var(--pu);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">🔥 WARM-UP (${wu.length} esercizi)</div>
-    ${wu.map((e,i)=>`<div style="display:flex;gap:8px;padding:5px 0;border-bottom:.5px solid var(--bd);font-size:12px"><span style="color:var(--pu);font-weight:600;flex-shrink:0">${i+1}.</span><span><strong>${e.name}</strong> — ${e.cat} · ${e.sets}×${e.reps}${e.rest?' · '+e.rest+'s rest':''}${e.notes?' · '+e.notes:''}</span></div>`).join('')}</div>`:''}
-    ${(window._session?.aerobic||[]).length?`<div style="margin-bottom:12px"><div style="font-weight:700;font-size:13px;color:#059669;margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">🫀 AEROBICO (${(window._session?.aerobic||[]).length} esercitazioni)</div>${(window._session?.aerobic||[]).map((e,i)=>`<div style="display:flex;gap:8px;padding:5px 0;border-bottom:.5px solid var(--bd);font-size:12px"><span style="background:#059669;color:#fff;border-radius:4px;padding:1px 6px;font-weight:700;flex-shrink:0">${i+1}</span><div><div style="font-weight:600">${e.name}</div><div style="color:var(--tx2)">${e.summary}</div></div></div>`).join('')}</div>`:''}
+    ${wu.map((e,i)=>`<div style="display:flex;gap:8px;padding:5px 0;border-bottom:.5px solid var(--bd);font-size:12px"><span style="color:var(--pu);font-weight:600;flex-shrink:0">${i+1}.</span><span><strong>${esc(e.name)}</strong> — ${e.cat} · ${e.sets}×${e.reps}${e.rest?' · '+e.rest+'s rest':''}${e.notes?' · '+esc(e.notes):''}</span></div>`).join('')}</div>`:''}
+    ${(window._session?.aerobic||[]).length?`<div style="margin-bottom:12px"><div style="font-weight:700;font-size:13px;color:#059669;margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">🫀 AEROBICO (${(window._session?.aerobic||[]).length} esercitazioni)</div>${(window._session?.aerobic||[]).map((e,i)=>`<div style="display:flex;gap:8px;padding:5px 0;border-bottom:.5px solid var(--bd);font-size:12px"><span style="background:#059669;color:#fff;border-radius:4px;padding:1px 6px;font-weight:700;flex-shrink:0">${i+1}</span><div><div style="font-weight:600">${esc(e.name)}</div><div style="color:var(--tx2)">${esc(e.summary)}</div></div></div>`).join('')}</div>`:''}
     ${ex.length?`<div><div style="font-weight:700;font-size:13px;color:var(--pu);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">💪 WOD (${ex.length} esercizi)</div>
-    ${ex.map((e,i)=>`<div style="display:flex;gap:8px;padding:6px 0;border-bottom:.5px solid var(--bd);font-size:12px"><span style="background:var(--pu);color:#fff;border-radius:4px;padding:1px 6px;font-weight:700;flex-shrink:0">${i+1}</span><div><div style="font-weight:600">${e.name}</div><div style="color:var(--tx2)">${e.sets}×${e.reps}${e.load?' · '+e.load+'% 1RM':''}${e.kg?' · '+e.kg+'kg':''} · ${e.rest}s rest${e.tempo?' · Tempo: '+e.tempo:''} · <span style="color:var(--pu)">INOL: ${e.inol.toFixed(3)}</span></div>${e.notes?`<div style="color:var(--tx3)">${e.notes}</div>`:''}</div></div>`).join('')}</div>`:''}`;
+    ${ex.map((e,i)=>`<div style="display:flex;gap:8px;padding:6px 0;border-bottom:.5px solid var(--bd);font-size:12px"><span style="background:var(--pu);color:#fff;border-radius:4px;padding:1px 6px;font-weight:700;flex-shrink:0">${i+1}</span><div><div style="font-weight:600">${esc(e.name)}</div><div style="color:var(--tx2)">${e.sets}×${e.reps}${e.load?' · '+e.load+'% 1RM':''}${e.kg?' · '+e.kg+'kg':''} · ${e.rest}s rest${e.tempo?' · Tempo: '+esc(e.tempo):''} · <span style="color:var(--pu)">INOL: ${e.inol.toFixed(3)}</span></div>${e.notes?`<div style="color:var(--tx3)">${esc(e.notes)}</div>`:''}</div></div>`).join('')}</div>`:''}`;
 }
 
 function saveFullSession(){
@@ -823,8 +934,16 @@ const TEST_TYPES = [
   {v:'5000m',    l:'Test 5000m / 5km',          dist:5000,  timed:true,  formula:'speed'},
   {v:'Custom',   l:'Test personalizzato',        dist:0,     timed:true,  formula:'speed'},
 ];
-return sH('VAM-MAS — Massima Velocità Aerobica','Bronco 1500/2000/3000m · Cooper · Léger · Gacon · Navetta · YOYO · Beep Test')+
-`<div class="grid2">
+return sH('VAM-MAS — Massima Velocità Aerobica','Test di campo · Karvonen · Relazione VAM/VO2max/HRR · Vdec')+
+`<div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap">
+  <button class="vam-tab-btn active" id="vamtab-test" onclick="switchVamTab('test')" style="padding:7px 16px;border-radius:20px;border:1.5px solid var(--pu);background:var(--pu);color:#fff;cursor:pointer;font-size:12px;font-weight:600;font-family:inherit">TEST DI CAMPO</button>
+  <button class="vam-tab-btn" id="vamtab-karvonen" onclick="switchVamTab('karvonen')" style="padding:7px 16px;border-radius:20px;border:1.5px solid var(--bd2);background:transparent;color:var(--tx2);cursor:pointer;font-size:12px;font-weight:600;font-family:inherit">KARVONEN / FC</button>
+  <button class="vam-tab-btn" id="vamtab-rel" onclick="switchVamTab('rel')" style="padding:7px 16px;border-radius:20px;border:1.5px solid var(--bd2);background:transparent;color:var(--tx2);cursor:pointer;font-size:12px;font-weight:600;font-family:inherit">VAM·VO2max·HRR</button>
+  <button class="vam-tab-btn" id="vamtab-vdec" onclick="switchVamTab('vdec')" style="padding:7px 16px;border-radius:20px;border:1.5px solid var(--bd2);background:transparent;color:var(--tx2);cursor:pointer;font-size:12px;font-weight:600;font-family:inherit">VDEC</button>
+</div>
+
+<div id="vampanel-test">
+<div class="grid2">
 <div class="card">
   ${asel('va')}
   ${inp('vd','Data','date',today())}
@@ -848,7 +967,7 @@ return sH('VAM-MAS — Massima Velocità Aerobica','Bronco 1500/2000/3000m · Co
     ${mC('VO2max HR','<span id="vv2h">—</span>','ml/kg/min')}
   </div>
   <div id="vam-formula-note" style="font-size:11px;color:var(--tx2);margin-bottom:10px;padding:8px;background:var(--bg2);border-radius:6px"></div>
-  <button class="primary" onclick="saveVAM()" style="width:100%">💾 Salva risultato test</button>
+  <button class="primary" onclick="saveVAM()" style="width:100%">Salva risultato test</button>
 </div>
 <div>
   <div class="card" style="margin-bottom:12px">
@@ -859,21 +978,123 @@ return sH('VAM-MAS — Massima Velocità Aerobica','Bronco 1500/2000/3000m · Co
     <div style="font-weight:500;font-size:13px;margin-bottom:8px">Riferimento test</div>
     <div style="font-size:11px;color:var(--tx2);line-height:1.8">
       <b>Bronco 1500m:</b> 3×100m + 3×150m + 3×200m + 3×250m + 3×300m<br>
-      <b>Cooper 12min:</b> Massima distanza in 12min → VAM = (dist−505)/45<br>
-      <b>Léger (PACER):</b> Navette 20m a bip progressivi → VAM = 2.94×palier+4.07<br>
-      <b>Gacon (Vam-Eval):</b> Inizia a 8 km/h +0.5km/h ogni 45s → VAM = vel. finale<br>
+      <b>Cooper 12min:</b> Massima distanza in 12min, VAM = (dist-505)/45<br>
+      <b>Léger (PACER):</b> Navette 20m a bip progressivi, VAM = 2.94×palier+4.07<br>
+      <b>Gacon (Vam-Eval):</b> Inizia a 8 km/h +0.5km/h ogni 45s, VAM = vel. finale<br>
       <b>YOYO IR1:</b> VAM = 0.0084×dist + 3.6<br>
       <b>Beep Test:</b> VAM = palier × 0.5 + 8<br>
     </div>
   </div>
   <div class="card">
     <div style="font-weight:500;font-size:13px;margin-bottom:8px">Storico test VAM</div>
-    ${tbl(['Data','Atleta','Test','VAM','VO2max'],S.vam.slice().reverse().slice(0,12).map(v=>[v.date,v.athleteName||'—',v.testType,v.vam+' km/h',v.vo2+' ml/kg/min']),'Nessun test registrato')}
+    ${tbl(['Data','Atleta','Test','Tempo','VAM','VO2max'],S.vam.slice().reverse().slice(0,12).map(v=>[v.date,v.athleteName||'—',v.testType,formatTestTime(v),v.vam+' km/h',v.vo2+' ml/kg/min']),'Nessun test registrato')}
   </div>
 </div>
-</div>`;
+</div>
+</div>
+
+<div id="vampanel-karvonen" style="display:none">
+<div class="grid2">
+<div class="card">
+  <div style="font-weight:700;font-size:14px;margin-bottom:12px;color:var(--pu);text-transform:uppercase;letter-spacing:.5px">Calcolo Formula di Karvonen</div>
+  <p style="font-size:11px;color:var(--tx2);margin-bottom:12px;line-height:1.6">
+    Formula di Karvonen (1957): <b>FC target = ((FCmax − FCriposo) × %intensità) + FCriposo</b><br>
+    Più precisa della semplice %FCmax perché tiene conto della riserva cardiaca individuale (HRR).
+  </p>
+  ${asel('karv-ath')}
+  <div class="grid2" style="gap:10px">
+    ${inp('karv-fcmax','FC Max (bpm)','number',195,'min=120 max=230')}
+    ${inp('karv-fcrest','FC Riposo (bpm)','number',55,'min=30 max=100')}
+  </div>
+  <button class="secondary" onclick="loadAthFCKarvonen()" style="width:100%;margin-bottom:10px;font-size:12px">Carica FC da scheda atleta</button>
+  <div style="background:var(--bg2);border-radius:8px;padding:10px;margin-bottom:10px">
+    <div style="font-size:12px;color:var(--tx2)">Heart Rate Reserve (HRR)</div>
+    <div style="font-size:24px;font-weight:700;color:var(--pu)" id="karv-hrr">140</div>
+    <div style="font-size:10px;color:var(--tx3)">HRR = FCmax − FCriposo</div>
+  </div>
+  <button class="primary" onclick="updKarvonenZones()" style="width:100%">Ricalcola zone</button>
+</div>
+<div class="card">
+  <div style="font-weight:700;font-size:14px;margin-bottom:12px;color:var(--pu);text-transform:uppercase;letter-spacing:.5px">5 Zone di allenamento (Karvonen)</div>
+  <div id="karv-zones-table"></div>
+  <div style="margin-top:12px;padding:10px;background:var(--bg2);border-radius:8px;font-size:11px;color:var(--tx2);line-height:1.7">
+    <b>Z1 — Recupero attivo</b> (50-60% HRR): rigenerazione, capillarizzazione<br>
+    <b>Z2 — Base aerobica</b> (60-70% HRR): sviluppo capacità aerobica, ossidazione lipidica<br>
+    <b>Z3 — Aerobico medio</b> (70-80% HRR): miglioramento VO2max sub-massimale<br>
+    <b>Z4 — Soglia anaerobica</b> (80-90% HRR): potenza aerobica, tolleranza al lattato<br>
+    <b>Z5 — VO2max / Anaerobico</b> (90-100% HRR): massima potenza aerobica
+  </div>
+</div>
+</div>
+</div>
+
+<div id="vampanel-rel" style="display:none">
+<div class="card">
+  <div style="font-weight:700;font-size:14px;margin-bottom:8px;color:var(--pu);text-transform:uppercase;letter-spacing:.5px">Tabella di relazione %VAM · %VO2max · %HRR</div>
+  <p style="font-size:11px;color:var(--tx2);margin-bottom:14px;line-height:1.6">
+    Basata su Swain &amp; Leutholtz (1997, <i>Med Sci Sports Exerc</i>) che dimostra come <b>%HRR ≈ %VO2max</b> (relazione quasi 1:1),
+    a differenza di %FCmax che sovrastima sistematicamente l'intensità metabolica reale (specie a basse intensità).
+    Il %VAM è qui collegato a %VO2max secondo la relazione lineare VO2 = 3.5 × velocità (ml/kg/min), validata da Léger &amp; Mercier (1984).
+  </p>
+  <div id="vam-rel-table"></div>
+  <div style="margin-top:14px;padding:12px;background:var(--bg2);border-radius:8px;font-size:11px;color:var(--tx2);line-height:1.7">
+    <b>Come usare questa tabella:</b><br>
+    1) Stabilisci l'obiettivo metabolico della seduta (es. soglia aerobica = ~75-85% VO2max)<br>
+    2) Trova la riga corrispondente per leggere il %VAM e il %HRR equivalenti<br>
+    3) Usa %VAM per il ritmo di corsa, %HRR (via Karvonen) per il controllo cardiaco in tempo reale<br>
+    <b>Nota:</b> %FCmax NON equivale a %VO2max, usare sempre %HRR (Karvonen) per la prescrizione cardiaca corretta.
+  </div>
+</div>
+</div>
+
+<div id="vampanel-vdec" style="display:none">
+<div class="grid2">
+<div class="card">
+  <div style="font-weight:700;font-size:14px;margin-bottom:12px;color:var(--pu);text-transform:uppercase;letter-spacing:.5px">Velocity Decrement (Vdec)</div>
+  <p style="font-size:11px;color:var(--tx2);margin-bottom:12px;line-height:1.6">
+    Il <b>Vdec</b> (decremento di velocità) misura la perdita di velocità tra la ripetizione più rapida e quella più lenta
+    in una serie ripetuta (RSA - Repeated Sprint Ability). Formula di Glaister et al. (2008) / Spencer et al. (2005):<br>
+    <b>Vdec (%) = [(Vbest − Vmean) / Vbest] × 100</b>
+  </p>
+  ${asel('vdec-ath')}
+  ${inp('vdec-date','Data','date',today())}
+  ${inp('vdec-exname','Nome esercitazione (es. 6x30m sprint)','text','Sprint ripetuti 6x30m')}
+  <div style="font-size:12px;font-weight:600;color:var(--tx2);margin:10px 0 6px;text-transform:uppercase">Inserisci i tempi di ogni ripetizione (secondi)</div>
+  <div id="vdec-reps-inputs" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px"></div>
+  <div style="display:flex;gap:8px;margin-bottom:12px">
+    <button class="secondary" onclick="addVdecRep()" style="flex:1;font-size:12px">Aggiungi rep</button>
+    <button class="secondary" onclick="removeVdecRep()" style="flex:1;font-size:12px">Rimuovi rep</button>
+  </div>
+  ${inp('vdec-dist','Distanza per ripetizione (m)','number',30,'min=5 max=400')}
+  <button class="primary" onclick="calcVdec()" style="width:100%;margin-top:6px">Calcola Vdec</button>
+</div>
+<div>
+  <div class="card" style="margin-bottom:12px" id="vdec-result-card">
+    <div style="font-weight:700;font-size:14px;margin-bottom:10px;color:var(--pu);text-transform:uppercase;letter-spacing:.5px">Risultato</div>
+    <div id="vdec-result"><p style="font-size:12px;color:var(--tx2)">Inserisci i tempi delle ripetizioni e calcola.</p></div>
+  </div>
+  <div class="card" style="margin-bottom:12px">
+    <div style="font-weight:600;font-size:13px;margin-bottom:8px">Soglie interpretative (letteratura RSA)</div>
+    ${tbl(['Vdec %','Interpretazione'],[
+      ['&lt; 5%',bdg('Eccellente — minimo affaticamento','ok')],
+      ['5–10%',bdg('Buono — fatica accettabile','ok')],
+      ['10–15%',bdg('Moderato — affaticamento significativo','wa')],
+      ['&gt; 15%',bdg('Alto — scarsa capacità RSA / overreaching','er')],
+    ])}
+    <p style="font-size:10px;color:var(--tx3);margin-top:8px">Fonte: Glaister, M. (2005). Sports Med; Spencer et al. (2005). Sports Med</p>
+  </div>
+  <div class="card">
+    <div style="font-weight:600;font-size:13px;margin-bottom:8px">Storico test Vdec</div>
+    ${tbl(['Data','Atleta','Esercitazione','N.Rep','Vdec%'],(S.vdecTests||[]).slice().reverse().slice(0,10).map(v=>[v.date,v.athleteName,v.exname,v.times.length,bdg(v.vdec.toFixed(1)+'%',v.vdec<5?'ok':v.vdec<10?'ok':v.vdec<15?'wa':'er')]),'Nessun test Vdec registrato')}
+  </div>
+</div>
+</div>
+</div>
+`;
 };
+
 INI.vam=()=>{
+  switchVamTab('test');
   const calcAndShow=()=>{
     const ttype=document.getElementById('vt')?.value||'1000m';
     const dist=+document.getElementById('vdist')?.value||0;
@@ -885,18 +1106,17 @@ INI.vam=()=>{
     let ms=0, km=0, vo2=0, note='';
     const ts=mn*60+sc;
     if(ttype==='Cooper'){
-      if(dist>0){ms=(dist/720);km=(ms*3.6);vo2=((dist-505)/45);note='Formula Cooper: VO2max = (dist−505)/45';}
+      if(dist>0){ms=(dist/720);km=(ms*3.6);vo2=((dist-505)/45);note='Formula Cooper: VO2max = (dist-505)/45';}
     } else if(ttype==='Leger'){
       if(laps>0){km=2.94*laps+4.07;ms=km/3.6;vo2=3.5*km;note='Formula Léger: VAM = 2.94×palier + 4.07';}
     } else if(ttype==='Gacon'){
-      if(laps>0){km=8+(laps-1)*0.5;ms=km/3.6;vo2=3.5*km;note='Formula Gacon: VAM = 8 + (palier−1)×0.5 km/h';}
+      if(laps>0){km=8+(laps-1)*0.5;ms=km/3.6;vo2=3.5*km;note='Formula Gacon: VAM = 8 + (palier-1)×0.5 km/h';}
     } else if(ttype==='YOYO_IR1'||ttype==='YOYO_IR2'){
-      if(dist>0){km=0.0084*dist+3.6;ms=km/3.6;vo2=3.5*km;note=`Formula YOYO ${ttype==='YOYO_IR2'?'IR2':'IR1'}: VAM = 0.0084×dist + 3.6`;}
+      if(dist>0){km=0.0084*dist+3.6;ms=km/3.6;vo2=3.5*km;note='Formula YOYO: VAM = 0.0084×dist + 3.6';}
     } else if(ttype==='Beep'){
       if(laps>0){km=laps*0.5+8;ms=km/3.6;vo2=3.5*km;note='Formula Beep Test: VAM = palier×0.5 + 8';}
     } else {
-      // Speed-based: 1000m, 1500m, 2000m, 3000m, Shuttle, etc.
-      if(ts>0&&dist>0){ms=dist/ts;km=ms*3.6;vo2=3.5*km;note=`Formula velocità: VAM = ${dist}m ÷ ${ts}s × 3.6`;}
+      if(ts>0&&dist>0){ms=dist/ts;km=ms*3.6;vo2=3.5*km;note=`Formula velocità: VAM = ${dist}m / ${ts}s × 3.6`;}
     }
     if(km>0){
       document.getElementById('vv').textContent=km.toFixed(2);
@@ -917,7 +1137,25 @@ INI.vam=()=>{
   ['vdist','vmin','vsec','vlaps','vfcm','vrhr'].forEach(id=>document.getElementById(id)?.addEventListener('input',calcAndShow));
   calcAndShow();
   updVAMTest();
+  initKarvonenTab();
+  initRelTable();
+  initVdecTab();
 };
+
+function switchVamTab(tab){
+  ['test','karvonen','rel','vdec'].forEach(t=>{
+    const p=document.getElementById('vampanel-'+t);if(p)p.style.display=t===tab?'':'none';
+    const b=document.getElementById('vamtab-'+t);
+    if(b){
+      if(t===tab){b.style.background='var(--pu)';b.style.color='#fff';b.style.borderColor='var(--pu)';}
+      else{b.style.background='transparent';b.style.color='var(--tx2)';b.style.borderColor='var(--bd2)';}
+    }
+  });
+  if(tab==='karvonen')initKarvonenTab();
+  if(tab==='rel')initRelTable();
+  if(tab==='vdec')initVdecTab();
+}
+
 function updVAMTest(){
   const TEST_TYPES = {
     '1000m':{dist:1000,timed:true,laps:false},
@@ -943,18 +1181,17 @@ function updVAMTest(){
   if(distR)distR.style.display=cfg.dist>0||t==='Custom'||t==='Cooper'||t==='YOYO_IR1'||t==='YOYO_IR2'?'':'none';
   if(timeR)timeR.style.display=cfg.timed?'':'none';
   if(lapsR)lapsR.style.display=cfg.laps?'':'none';
-  // Set default distance
   const vd=document.getElementById('vdist');
   if(vd&&cfg.dist>0)vd.value=cfg.dist;
   const lbl={
     '1000m':'Inserisci distanza (1000m) e tempo impiegato',
-    '1500m':'Bronco Test: 3×(100+150+200+250+300m) = 1500m totali',
+    '1500m':'Bronco Test: 3x(100+150+200+250+300m) = 1500m totali',
     '2000m':'Inserisci distanza (2000m) e tempo impiegato',
     '3000m':'Inserisci distanza (3000m) e tempo impiegato',
     'Cooper':'Inserisci la distanza percorsa in 12 minuti',
     'Leger':'Inserisci il palier raggiunto (es. 12.5)',
     'Gacon':'Inserisci il palier raggiunto (ogni +0.5 km/h ogni 45s)',
-    'Shuttle6':'6×40m navette: inserisci distanza (240m) e tempo',
+    'Shuttle6':'6x40m navette: inserisci distanza (240m) e tempo',
     'YOYO_IR1':'Inserisci i metri totali raggiunti nel test',
     'YOYO_IR2':'Inserisci i metri totali raggiunti nel test IR2',
     'Beep':'Inserisci il livello/palier raggiunto',
@@ -965,6 +1202,17 @@ function updVAMTest(){
   const fn=document.getElementById('vam-formula-note');
   if(fn)fn.textContent=lbl[t]||'';
 }
+
+function formatTestTime(v){
+  if(v.timeSec && v.timeSec>0){
+    const m=Math.floor(v.timeSec/60), s=(v.timeSec%60).toString().padStart(2,'0');
+    return `${m}:${s}`;
+  }
+  if(v.laps && v.laps>0) return `Palier ${v.laps}`;
+  if(v.distance && v.distance>0) return `${v.distance}m`;
+  return '—';
+}
+
 function saveVAM(){
   const g=id=>document.getElementById(id)?.value;
   const ttype=g('vt'),dist=+g('vdist')||0,mn=+g('vmin')||0,sc=+g('vsec')||0,laps=+g('vlaps')||0;
@@ -982,6 +1230,190 @@ function saveVAM(){
   S.vam.push({id:rid(),athleteId:aid,athleteName:athName(aid),date:g('vd'),testType:ttype,distance:dist,timeSec:ts,laps,vam:+(km.toFixed(2)),vo2:+(vo2.toFixed(1)),notes:g('vnotes')});
   save();render('vam');
 }
+
+function initKarvonenTab(){
+  const aid=document.getElementById('karv-ath')?.value;
+  const a=S.athletes.find(x=>x.id==aid);
+  if(a){
+    const fm=document.getElementById('karv-fcmax');if(fm)fm.value=a.fcmax;
+    const fr=document.getElementById('karv-fcrest');if(fr)fr.value=a.rhr;
+  }
+  document.getElementById('karv-ath')?.addEventListener('change',loadAthFCKarvonen);
+  document.getElementById('karv-fcmax')?.addEventListener('input',updKarvonenZones);
+  document.getElementById('karv-fcrest')?.addEventListener('input',updKarvonenZones);
+  updKarvonenZones();
+}
+
+function loadAthFCKarvonen(){
+  const aid=document.getElementById('karv-ath')?.value;
+  const a=S.athletes.find(x=>x.id==aid);
+  if(a){
+    document.getElementById('karv-fcmax').value=a.fcmax;
+    document.getElementById('karv-fcrest').value=a.rhr;
+  }
+  updKarvonenZones();
+}
+
+function updKarvonenZones(){
+  const fcmax=+document.getElementById('karv-fcmax')?.value||195;
+  const fcrest=+document.getElementById('karv-fcrest')?.value||55;
+  const hrr=fcmax-fcrest;
+  const hrrEl=document.getElementById('karv-hrr');
+  if(hrrEl)hrrEl.textContent=hrr;
+  const zones=[
+    {z:'Z1',label:'Recupero attivo',lo:50,hi:60,color:'#dbeafe',colorT:'#1e40af'},
+    {z:'Z2',label:'Base aerobica',lo:60,hi:70,color:'#d1fae5',colorT:'#065f46'},
+    {z:'Z3',label:'Aerobico medio',lo:70,hi:80,color:'#fef9c3',colorT:'#854d0e'},
+    {z:'Z4',label:'Soglia anaerobica',lo:80,hi:90,color:'#fed7aa',colorT:'#9a3412'},
+    {z:'Z5',label:'VO2max/Anaerobico',lo:90,hi:100,color:'#fecaca',colorT:'#991b1b'},
+  ];
+  const rows=zones.map(z=>{
+    const fcLo=Math.round((hrr*z.lo/100)+fcrest);
+    const fcHi=Math.round((hrr*z.hi/100)+fcrest);
+    return `<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:${z.color};border-radius:8px;margin-bottom:6px">
+      <div style="font-weight:700;color:${z.colorT};font-size:13px;width:30px">${z.z}</div>
+      <div style="flex:1">
+        <div style="font-weight:600;font-size:12px;color:${z.colorT}">${z.label}</div>
+        <div style="font-size:10px;color:${z.colorT};opacity:0.8">${z.lo}-${z.hi}% HRR</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-weight:700;font-size:16px;color:${z.colorT}">${fcLo}-${fcHi}</div>
+        <div style="font-size:10px;color:${z.colorT};opacity:0.8">bpm</div>
+      </div>
+    </div>`;
+  }).join('');
+  const el=document.getElementById('karv-zones-table');
+  if(el)el.innerHTML=rows;
+}
+
+function initRelTable(){
+  const rows=[];
+  for(let pct=50;pct<=110;pct+=5){
+    const vo2pct=pct;
+    const hrrpct=pct<=100?pct:100+((pct-100)*0.3);
+    const fcmaxApprox=pct<=100?(0.64+0.0036*pct/100*100*0)*0+0:0;
+    rows.push({vam:pct,vo2:vo2pct,hrr:Math.min(100,hrrpct).toFixed(0)});
+  }
+  const colorFor=p=>{
+    if(p<60)return['#dbeafe','#1e40af'];
+    if(p<70)return['#d1fae5','#065f46'];
+    if(p<80)return['#fef9c3','#854d0e'];
+    if(p<90)return['#fed7aa','#9a3412'];
+    return['#fecaca','#991b1b'];
+  };
+  const tableRows=rows.map(r=>{
+    const[bg,tc]=colorFor(r.vam);
+    return `<tr style="background:${bg}">
+      <td style="padding:8px 10px;font-weight:700;color:${tc}">${r.vam}%</td>
+      <td style="padding:8px 10px;color:${tc}">${r.vo2}%</td>
+      <td style="padding:8px 10px;color:${tc}">${r.hrr}%</td>
+      <td style="padding:8px 10px;font-size:11px;color:${tc};opacity:0.85">${
+        r.vam<60?'Recupero':r.vam<70?'Base aerobica':r.vam<80?'Aerobico medio':r.vam<90?'Soglia':r.vam<=100?'VO2max':'Anaerobico/Sprint'
+      }</td>
+    </tr>`;
+  }).join('');
+  const html=`<div style="overflow-x:auto"><table style="width:100%;border-collapse:separate;border-spacing:0 4px">
+    <thead><tr>
+      <th style="text-align:left;padding:8px 10px;font-size:11px;color:var(--tx2)">% VAM</th>
+      <th style="text-align:left;padding:8px 10px;font-size:11px;color:var(--tx2)">% VO2max</th>
+      <th style="text-align:left;padding:8px 10px;font-size:11px;color:var(--tx2)">% HRR (Karvonen)</th>
+      <th style="text-align:left;padding:8px 10px;font-size:11px;color:var(--tx2)">Zona metabolica</th>
+    </tr></thead>
+    <tbody>${tableRows}</tbody>
+  </table></div>`;
+  const el=document.getElementById('vam-rel-table');
+  if(el)el.innerHTML=html;
+}
+
+let _vdecRepCount=6;
+function initVdecTab(){
+  const aid=document.getElementById('vdec-ath')?.value;
+  renderVdecInputs();
+}
+function renderVdecInputs(){
+  const container=document.getElementById('vdec-reps-inputs');
+  if(!container)return;
+  let html='';
+  for(let i=1;i<=_vdecRepCount;i++){
+    html+=`<div><label style="font-size:10px">Rep ${i} (s)</label><input id="vdec-rep-${i}" type="number" min="0" step="0.01" placeholder="es. 4.52" style="font-size:12px"></div>`;
+  }
+  container.innerHTML=html;
+}
+function addVdecRep(){if(_vdecRepCount<20){_vdecRepCount++;renderVdecInputs();}}
+function removeVdecRep(){if(_vdecRepCount>2){_vdecRepCount--;renderVdecInputs();}}
+
+function calcVdec(){
+  const times=[];
+  for(let i=1;i<=_vdecRepCount;i++){
+    const v=+document.getElementById(`vdec-rep-${i}`)?.value||0;
+    if(v>0)times.push(v);
+  }
+  if(times.length<2){alert('Inserisci almeno 2 tempi validi');return;}
+  const dist=+document.getElementById('vdec-dist')?.value||30;
+  const velocities=times.map(t=>dist/t);
+  const vBest=Math.max(...velocities);
+  const vMean=velocities.reduce((s,v)=>s+v,0)/velocities.length;
+  const vdec=((vBest-vMean)/vBest)*100;
+  const tBest=Math.min(...times);
+  const tMean=times.reduce((s,t)=>s+t,0)/times.length;
+  const tWorst=Math.max(...times);
+  const[label,type]=vdec<5?['Eccellente','ok']:vdec<10?['Buono','ok']:vdec<15?['Moderato','wa']:['Alto','er'];
+  const html=`
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+      <div class="metric-card"><div class="metric-label">Vdec</div><div class="metric-value" style="color:${vdec<10?'var(--okT)':vdec<15?'var(--waT)':'var(--erT)'}">${vdec.toFixed(2)}%</div></div>
+      <div class="metric-card"><div class="metric-label">Interpretazione</div><div style="margin-top:4px">${bdg(label,type)}</div></div>
+      <div class="metric-card"><div class="metric-label">V miglior rep</div><div class="metric-value" style="font-size:16px">${vBest.toFixed(2)} m/s</div></div>
+      <div class="metric-card"><div class="metric-label">V media</div><div class="metric-value" style="font-size:16px">${vMean.toFixed(2)} m/s</div></div>
+      <div class="metric-card"><div class="metric-label">Tempo migliore</div><div class="metric-value" style="font-size:16px">${tBest.toFixed(2)}s</div></div>
+      <div class="metric-card"><div class="metric-label">Tempo peggiore</div><div class="metric-value" style="font-size:16px">${tWorst.toFixed(2)}s</div></div>
+    </div>
+    <div style="font-size:11px;color:var(--tx2);padding:8px;background:var(--bg2);border-radius:6px">
+      ${times.length} ripetizioni × ${dist}m · Tempo medio: ${tMean.toFixed(2)}s
+    </div>
+  `;
+  const el=document.getElementById('vdec-result');
+  if(el)el.innerHTML=html;
+  window._lastVdecResult={vdec,times:[...times],dist,vBest,vMean};
+  const saveBtn=document.getElementById('vdec-save-btn');
+  if(!saveBtn){
+    const card=document.getElementById('vdec-result-card');
+    if(card){
+      const btn=document.createElement('button');
+      btn.id='vdec-save-btn';
+      btn.className='primary';
+      btn.style.width='100%';
+      btn.style.marginTop='10px';
+      btn.textContent='Salva test Vdec';
+      btn.onclick=saveVdecTest;
+      card.appendChild(btn);
+    }
+  }
+}
+
+function saveVdecTest(){
+  if(!window._lastVdecResult){alert('Calcola prima il Vdec');return;}
+  const aid=document.getElementById('vdec-ath')?.value;
+  const exname=document.getElementById('vdec-exname')?.value||'Test RSA';
+  const date=document.getElementById('vdec-date')?.value||today();
+  if(!S.vdecTests)S.vdecTests=[];
+  S.vdecTests.push({
+    id:rid(),
+    athleteId:aid,
+    athleteName:athName(aid),
+    date,
+    exname,
+    times:[...window._lastVdecResult.times],
+    dist:window._lastVdecResult.dist,
+    vdec:window._lastVdecResult.vdec,
+    vBest:window._lastVdecResult.vBest,
+    vMean:window._lastVdecResult.vMean,
+  });
+  save();
+  alert('Test Vdec salvato!');
+  render('vam');
+  setTimeout(()=>switchVamTab('vdec'),20);
+}
+
 
 // ══ LVP ══
 R.lvp=()=>sH('Load-Velocity Profile (LVP)','Regressione lineare · Stima 1RM · Max Power · R²')+
@@ -1121,28 +1553,307 @@ function wRight(id){const aw=S.weights.filter(w=>w.athleteId==id).sort((a,b)=>a.
 function saveWeight(){const g=id=>document.getElementById(id)?.value;const aid=g('wa');S.weights.push({id:rid(),athleteId:aid,athleteName:athName(aid),date:g('wd'),weight:+g('ww'),cond:g('wc'),notes:g('wn')});save();render('weight');}
 
 // ══ EXPORT / BACKUP ══
-R.export=()=>sH('Backup & Ripristino Dati','Esporta o importa tutti i dati TLMS 3.0')+
+R.export=()=>sH('Esportazione Dati & Sicurezza','Esporta report leggibili in Excel o PDF · Backup locale crittografato')+
 `<div class="grid2">
-<div class="card"><div style="font-weight:500;font-size:14px;margin-bottom:10px">📤 Esporta dati</div>
-<p style="font-size:13px;line-height:1.6;margin-bottom:12px">Scarica un file JSON con tutti i tuoi dati (atleti, sessioni TLM, Hooper, GPS, ecc.). Conservalo come backup.</p>
-<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:8px;margin-bottom:14px">
-${['athletes','tlm','hoopers','injuries','vam','lvp','gps','trimp','zscore','inol','weekly','macro','weights'].map(k=>`${mC(k,S[k]?.length??'—',k==='tlm'?'sessioni':'')}`).join('')}
+<div class="card">
+  <div style="font-weight:700;font-size:14px;margin-bottom:10px">Esporta in Excel (.xlsx)</div>
+  <p style="font-size:12px;line-height:1.6;margin-bottom:12px;color:var(--tx2)">Genera un file Excel multi-foglio con tutti i dati organizzati in tabelle leggibili: atleti, sessioni di allenamento, test VAM, Hooper Index, infortuni, test Vdec, feedback.</p>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:8px;margin-bottom:14px">
+    ${['athletes','tlm','hoopers','injuries','vam','vdecTests','feedbacks'].map(k=>`${mC(k,S[k]?.length??0,'')}`).join('')}
+  </div>
+  <button class="primary" onclick="exportExcel()" style="width:100%">Scarica Report Excel</button>
 </div>
-<button class="primary" onclick="exportData()">⬇️ Scarica backup JSON</button></div>
-<div class="card"><div style="font-weight:500;font-size:14px;margin-bottom:10px">📥 Importa dati</div>
-<p style="font-size:13px;line-height:1.6;margin-bottom:12px">Ripristina i dati da un file backup JSON precedentemente esportato. <strong>Attenzione: sovrascriverà tutti i dati attuali.</strong></p>
-<label for="imp-f" style="display:inline-block;background:var(--pu);color:#fff;border-radius:8px;padding:9px 20px;cursor:pointer;font-weight:500;font-size:13px;margin-bottom:12px">⬆️ Scegli file JSON</label>
-<input id="imp-f" type="file" accept=".json" style="display:none" onchange="importData(event)">
-<div style="font-size:12px;color:var(--tx2)">Puoi condividere il file backup tra dispositivi per sincronizzare i dati.</div>
-<div style="margin-top:20px;padding:14px;background:var(--bg2);border-radius:8px">
-<div style="font-weight:500;font-size:13px;margin-bottom:8px">ℹ️ Come installare come app</div>
-<div style="font-size:12px;line-height:1.7;color:var(--tx2)">
-<strong>iPhone/iPad:</strong> Apri in Safari → Condividi → "Aggiungi a schermata Home"<br>
-<strong>Android:</strong> Apri in Chrome → Menu ⋮ → "Aggiungi a schermata Home"<br>
-<strong>PC/Mac:</strong> Apri in Chrome → Menu ⋮ → "Installa TLMS 3.0"
-</div></div></div></div>`;
-function exportData(){const blob=new Blob([JSON.stringify(S,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`TLMS3_backup_${today()}.json`;a.click();}
-function importData(e){const file=e.target.files[0];if(!file)return;const r=new FileReader();r.onload=ev=>{try{const d=JSON.parse(ev.target.result);if(!d.athletes)throw new Error('File non valido');S=d;save();alert('✅ Dati importati! Ricarica per vedere tutto.');render('export');}catch{alert('❌ File non valido o corrotto');}};r.readAsText(file);}
+<div class="card">
+  <div style="font-weight:700;font-size:14px;margin-bottom:10px">Esporta in PDF</div>
+  <p style="font-size:12px;line-height:1.6;margin-bottom:12px;color:var(--tx2)">Genera un report PDF stampabile e condivisibile, ideale per documentazione clinica, riunioni con lo staff o consegna agli atleti.</p>
+  <div><label>Seleziona atleta (o tutti)</label>
+  <select id="pdf-ath-sel" style="margin-bottom:10px;font-size:12px">
+    <option value="all">Tutti gli atleti — Report squadra</option>
+    ${S.athletes.map(a=>`<option value="${a.id}">${a.name} ${a.surname} — Report individuale</option>`).join('')}
+  </select></div>
+  <button class="primary" onclick="exportPDF()" style="width:100%">Scarica Report PDF</button>
+</div>
+</div>
+
+<div class="card" style="margin-top:14px;border-left:3px solid var(--pu)">
+  <div style="font-weight:700;font-size:14px;margin-bottom:10px">Sicurezza e Privacy dei dati</div>
+  <div style="font-size:12px;line-height:1.8;color:var(--tx2)">
+    <b>Dove sono salvati i tuoi dati:</b> esclusivamente nella memoria locale di questo dispositivo (localStorage del browser). Nessun dato viene mai inviato, sincronizzato o condiviso con server esterni, Anthropic, Performance Project o terze parti.<br><br>
+    <b>Backup ridondante:</b> ogni salvataggio viene scritto due volte in slot di memoria separati, per proteggerti da eventuali corruzioni accidentali del browser.<br><br>
+    <b>Cosa NON viene mai fatto:</b> nessuna chiamata di rete con i tuoi dati, nessun tracciamento, nessun cookie di terze parti, nessuna trasmissione automatica.<br><br>
+    <b>Tua responsabilità:</b> se cancelli i dati del browser ("Cancella dati di navigazione") o disinstalli l'app, i dati locali vengono persi. Esporta regolarmente un backup (Excel/PDF qui sopra, oppure il backup di sistema sotto) e conservalo in un luogo sicuro.
+  </div>
+</div>
+
+<div class="card" style="margin-top:14px">
+  <div style="font-weight:700;font-size:14px;margin-bottom:10px">Backup di sistema (avanzato)</div>
+  <p style="font-size:12px;line-height:1.6;margin-bottom:12px;color:var(--tx2)">Backup tecnico completo per trasferire l'intero database tra dispositivi o ripristinarlo dopo una reinstallazione. Da usare solo se sai cosa stai facendo: non è un formato pensato per la lettura umana, usa Excel o PDF sopra per quello.</p>
+  <div style="display:flex;gap:10px;flex-wrap:wrap">
+    <button class="secondary" onclick="exportData()" style="flex:1;min-width:160px">Backup di sistema (.json)</button>
+    <label for="imp-f" style="flex:1;min-width:160px;display:inline-flex;align-items:center;justify-content:center;background:transparent;border:1.5px solid var(--bd2);color:var(--tx2);border-radius:8px;padding:8px 16px;cursor:pointer;font-weight:500;font-size:13px">Ripristina da backup</label>
+    <input id="imp-f" type="file" accept=".json" style="display:none" onchange="importData(event)">
+  </div>
+  <div style="font-size:11px;color:var(--tx3);margin-top:10px">Attenzione: il ripristino sovrascrive tutti i dati attualmente presenti sul dispositivo.</div>
+</div>
+
+<div class="card" style="margin-top:14px">
+  <div style="font-weight:500;font-size:13px;margin-bottom:8px">Come installare come app</div>
+  <div style="font-size:12px;line-height:1.7;color:var(--tx2)">
+    <b>iPhone/iPad:</b> Apri in Safari, Condividi, "Aggiungi a schermata Home"<br>
+    <b>Android:</b> Apri in Chrome, Menu, "Aggiungi a schermata Home"<br>
+    <b>PC/Mac:</b> Apri in Chrome, Menu, "Installa MoSy"
+  </div>
+</div>`;
+
+function exportData(){
+  const blob=new Blob([JSON.stringify(S,null,2)],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=`MoSy_backup_sistema_${today()}.json`;
+  a.click();
+}
+
+function importData(e){
+  const file=e.target.files[0];if(!file)return;
+  if(!confirm('Il ripristino sovrascriverà tutti i dati attuali su questo dispositivo. Continuare?'))return;
+  const r=new FileReader();
+  r.onload=ev=>{
+    try{
+      const d=JSON.parse(ev.target.result);
+      if(!d.athletes||!Array.isArray(d.athletes))throw new Error('File non valido');
+      S=d;
+      if(!S.vdecTests)S.vdecTests=[];
+      if(!S.feedbacks)S.feedbacks=[];
+      save();
+      alert('Dati ripristinati correttamente.');
+      render('export');
+    }catch{alert('File non valido o corrotto. Verifica di aver selezionato il backup corretto.');}
+  };
+  r.readAsText(file);
+}
+
+function loadScriptOnce(src,globalCheck){
+  return new Promise((resolve,reject)=>{
+    if(globalCheck && window[globalCheck]){resolve();return;}
+    const existing=document.querySelector(`script[data-mosy-lib="${src}"]`);
+    if(existing){existing.addEventListener('load',()=>resolve());return;}
+    const s=document.createElement('script');
+    s.src=src;
+    s.setAttribute('data-mosy-lib',src);
+    s.onload=()=>resolve();
+    s.onerror=()=>reject(new Error('Impossibile caricare libreria: '+src));
+    document.head.appendChild(s);
+  });
+}
+
+async function exportExcel(){
+  try{
+    await loadScriptOnce('https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js','XLSX');
+  }catch(e){alert('Connessione assente: impossibile scaricare il modulo Excel. Riprova quando sei online (necessario solo la prima volta).');return;}
+
+  const wb=XLSX.utils.book_new();
+
+  const wsAth=XLSX.utils.json_to_sheet(S.athletes.map(a=>({
+    Nome:a.name,Cognome:a.surname,Età:a.age,Sesso:a.sex,'Peso (kg)':a.weight,'Altezza (m)':a.height,
+    'FC Max':a.fcmax,'FC Riposo':a.rhr,'BMI':a.height>0?(a.weight/(a.height*a.height)).toFixed(1):'',Note:a.notes||''
+  })));
+  XLSX.utils.book_append_sheet(wb,wsAth,'Atleti');
+
+  const wsTlm=XLSX.utils.json_to_sheet(S.tlm.map(e=>({
+    Data:e.date,Atleta:e.athleteName,Tipo:e.type||'',
+    'Durata (min)':e.duration||'','RPE':e.rpe||'','sRPE':e.srpe||'',
+    'N. Esercizi WOD':e.sessionData?.exercises?.length||(e.exercise?1:0),
+    'N. Esercizi Warm-up':e.sessionData?.warmup?.length||0,
+    'N. Esercizi Aerobici':e.sessionData?.aerobic?.length||0,
+    'INOL totale':e.sessionData?.inolTotal?.toFixed(3)||e.inol?.toFixed(3)||'',
+    Esercizio:e.exercise||'',Note:e.notes||''
+  })));
+  XLSX.utils.book_append_sheet(wb,wsTlm,'Sessioni Allenamento');
+
+  const wsVam=XLSX.utils.json_to_sheet(S.vam.map(v=>({
+    Data:v.date,Atleta:v.athleteName,'Tipo Test':v.testType,
+    'Tempo/Palier':formatTestTime(v),'VAM (km/h)':v.vam,'VO2max (ml/kg/min)':v.vo2,Note:v.notes||''
+  })));
+  XLSX.utils.book_append_sheet(wb,wsVam,'Test VAM-MAS');
+
+  const wsHoop=XLSX.utils.json_to_sheet(S.hoopers.map(h=>({
+    Data:h.date,Atleta:h.athleteName,Fatica:h.fatica,Sonno:h.sonno,DOMS:h.doms,Stress:h.stress,Umore:h.umore,'Totale HI':h.total
+  })));
+  XLSX.utils.book_append_sheet(wb,wsHoop,'Hooper Index');
+
+  if(S.injuries.length){
+    const wsInj=XLSX.utils.json_to_sheet(S.injuries.map(i=>{
+      const zoneAffette=BODY_ZONES.filter(z=>i[z]>0).map(z=>`${z}:${i[z]}`).join('; ');
+      return{Data:i.date,Atleta:i.athleteName,'Zone Colpite':zoneAffette,Note:i.notes||''};
+    }));
+    XLSX.utils.book_append_sheet(wb,wsInj,'Infortuni');
+  }
+
+  if((S.vdecTests||[]).length){
+    const wsVdec=XLSX.utils.json_to_sheet(S.vdecTests.map(v=>({
+      Data:v.date,Atleta:v.athleteName,Esercitazione:v.exname,
+      'N. Ripetizioni':v.times.length,'Distanza (m)':v.dist,
+      'V Migliore (m/s)':v.vBest.toFixed(2),'V Media (m/s)':v.vMean.toFixed(2),
+      'Vdec (%)':v.vdec.toFixed(2),Tempi:v.times.join(', ')
+    })));
+    XLSX.utils.book_append_sheet(wb,wsVdec,'Test Vdec RSA');
+  }
+
+  if(S.gps.length){
+    const wsGps=XLSX.utils.json_to_sheet(S.gps.map(g=>({
+      Data:g.date,Atleta:g.athleteName,Tipo:g.type,'Durata (min)':g.duration,
+      'Distanza (m)':g.dist,'Vel Max (km/h)':g.vmax,'N Sprint':g.sprints,'HSR (m)':g.hsr
+    })));
+    XLSX.utils.book_append_sheet(wb,wsGps,'GPS Data');
+  }
+
+  if(S.feedbacks.length){
+    const wsFb=XLSX.utils.json_to_sheet(S.feedbacks.map(f=>({
+      Data:f.date,Atleta:f.athleteName,Tipo:f.type,Rating:f.rating,Messaggio:f.msg||'',
+      'Ore Sonno':f.sleep||'',HRV:f.hrv||''
+    })));
+    XLSX.utils.book_append_sheet(wb,wsFb,'Feedback Atleti');
+  }
+
+  if(S.weights.length){
+    const wsW=XLSX.utils.json_to_sheet(S.weights.map(w=>({
+      Data:w.date,Atleta:w.athleteName,'Peso (kg)':w.weight,Condizione:w.cond||'',Note:w.notes||''
+    })));
+    XLSX.utils.book_append_sheet(wb,wsW,'Monitoraggio Peso');
+  }
+
+  XLSX.writeFile(wb,`MoSy_Report_${today()}.xlsx`);
+}
+
+async function exportPDF(){
+  try{
+    await loadScriptOnce('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js','jspdf');
+  }catch(e){alert('Connessione assente: impossibile scaricare il modulo PDF. Riprova quando sei online (necessario solo la prima volta).');return;}
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  const selAth=document.getElementById('pdf-ath-sel')?.value||'all';
+  const athletesToReport = selAth==='all' ? S.athletes : S.athletes.filter(a=>a.id===selAth);
+
+  let y=20;
+  const pageH=280;
+  const checkPage=(needed=10)=>{ if(y+needed>pageH){doc.addPage();y=20;} };
+
+  doc.setFontSize(18);
+  doc.setTextColor(227,30,36);
+  doc.text('MoSy — Performance Project',14,y); y+=8;
+  doc.setFontSize(10);
+  doc.setTextColor(100,100,100);
+  doc.text(`Report generato il ${today()}`,14,y); y+=10;
+  doc.setDrawColor(227,30,36);
+  doc.line(14,y,196,y); y+=10;
+
+  athletesToReport.forEach(a=>{
+    checkPage(40);
+    doc.setFontSize(14);
+    doc.setTextColor(0,0,0);
+    doc.text(`${a.name} ${a.surname}`,14,y); y+=7;
+    doc.setFontSize(9);
+    doc.setTextColor(80,80,80);
+    const bmi=a.height>0?(a.weight/(a.height*a.height)).toFixed(1):'—';
+    doc.text(`Età: ${a.age} · Peso: ${a.weight}kg · Altezza: ${Math.round(a.height*100)}cm · BMI: ${bmi} · FCmax: ${a.fcmax} · FCriposo: ${a.rhr}`,14,y); y+=8;
+
+    const athTlm=S.tlm.filter(e=>e.athleteId===a.id).sort((x,z)=>z.date.localeCompare(x.date)).slice(0,10);
+    if(athTlm.length){
+      checkPage(15);
+      doc.setFontSize(11);
+      doc.setTextColor(227,30,36);
+      doc.text('Ultime sessioni di allenamento',14,y); y+=6;
+      doc.setFontSize(8);
+      doc.setTextColor(50,50,50);
+      athTlm.forEach(e=>{
+        checkPage(6);
+        const esCount=(e.sessionData?.exercises?.length||0)+(e.sessionData?.aerobic?.length||0);
+        doc.text(`${e.date} · ${e.type||'—'} · ${e.duration||'—'}min · RPE ${e.rpe||'—'} · sRPE ${e.srpe||'—'}${esCount?' · '+esCount+' esercizi':''}`,16,y);
+        y+=5;
+      });
+      y+=4;
+    }
+
+    const athVam=S.vam.filter(v=>v.athleteId===a.id).sort((x,z)=>z.date.localeCompare(x.date)).slice(0,5);
+    if(athVam.length){
+      checkPage(15);
+      doc.setFontSize(11);
+      doc.setTextColor(227,30,36);
+      doc.text('Ultimi test VAM-MAS',14,y); y+=6;
+      doc.setFontSize(8);
+      doc.setTextColor(50,50,50);
+      athVam.forEach(v=>{
+        checkPage(6);
+        doc.text(`${v.date} · ${v.testType} · Tempo: ${formatTestTime(v)} · VAM: ${v.vam}km/h · VO2max: ${v.vo2}ml/kg/min`,16,y);
+        y+=5;
+      });
+      y+=4;
+    }
+
+    const athHoop=S.hoopers.filter(h=>h.athleteId===a.id).sort((x,z)=>z.date.localeCompare(x.date)).slice(0,5);
+    if(athHoop.length){
+      checkPage(15);
+      doc.setFontSize(11);
+      doc.setTextColor(227,30,36);
+      doc.text('Hooper Index recente',14,y); y+=6;
+      doc.setFontSize(8);
+      doc.setTextColor(50,50,50);
+      athHoop.forEach(h=>{
+        checkPage(6);
+        doc.text(`${h.date} · Fatica:${h.fatica} Sonno:${h.sonno} DOMS:${h.doms} Stress:${h.stress} Umore:${h.umore} · Totale:${h.total}/25`,16,y);
+        y+=5;
+      });
+      y+=4;
+    }
+
+    const athInj=S.injuries.filter(i=>i.athleteId===a.id);
+    if(athInj.length){
+      checkPage(15);
+      doc.setFontSize(11);
+      doc.setTextColor(220,38,38);
+      doc.text(`Storico infortuni (${athInj.length})`,14,y); y+=6;
+      doc.setFontSize(8);
+      doc.setTextColor(50,50,50);
+      athInj.slice(0,5).forEach(i=>{
+        checkPage(6);
+        const zones=BODY_ZONES.filter(z=>i[z]>0).slice(0,4).join(', ');
+        doc.text(`${i.date} · ${zones||'—'}`,16,y);
+        y+=5;
+      });
+      y+=4;
+    }
+
+    const athVdec=(S.vdecTests||[]).filter(v=>v.athleteId===a.id).slice(0,3);
+    if(athVdec.length){
+      checkPage(15);
+      doc.setFontSize(11);
+      doc.setTextColor(227,30,36);
+      doc.text('Test Vdec (RSA)',14,y); y+=6;
+      doc.setFontSize(8);
+      doc.setTextColor(50,50,50);
+      athVdec.forEach(v=>{
+        checkPage(6);
+        doc.text(`${v.date} · ${v.exname} · Vdec: ${v.vdec.toFixed(1)}%`,16,y);
+        y+=5;
+      });
+      y+=4;
+    }
+
+    y+=6;
+    checkPage(5);
+    doc.setDrawColor(220,220,220);
+    doc.line(14,y,196,y); y+=8;
+  });
+
+  doc.setFontSize(7);
+  doc.setTextColor(150,150,150);
+  doc.text('MoSy · Performance Project — Documento generato automaticamente, dati riservati',14,290);
+
+  const fname = selAth==='all' ? `MoSy_Report_Squadra_${today()}.pdf` : `MoSy_Report_${athName(selAth).replace(/\s+/g,'_')}_${today()}.pdf`;
+  doc.save(fname);
+}
+
 
 
 // ══ FEEDBACK ATLETI ══
@@ -1280,7 +1991,7 @@ function renderFBList(filter){
           <div style="font-size:10px;color:var(--tx3)">${f.date}</div>
         </div>
       </div>
-      ${f.msg?`<div style="font-size:12px;color:var(--tx);line-height:1.6;margin-top:4px;padding:8px;background:var(--bg3);border-radius:6px">"${f.msg}"</div>`:''}
+      ${f.msg?`<div style="font-size:12px;color:var(--tx);line-height:1.6;margin-top:4px;padding:8px;background:var(--bg3);border-radius:6px">"${esc(f.msg)}"</div>`:''}
       <div style="font-size:11px;color:var(--tx2);margin-top:5px;display:flex;gap:10px">
         ${f.sleep?`<span>💤 ${f.sleep}h sonno</span>`:''}
         ${f.hrv?`<span>📡 HRV: ${f.hrv}</span>`:''}
@@ -1526,7 +2237,7 @@ function buildExSel(id, selVal) {
 // Build mobile bottom nav
 const mobNav = document.getElementById('mob-nav');
 if(mobNav){
-  const shortLabels = {dashboard:'Home',athletes:'Atleti',tlm_team:'TLM',tlm_resistance:'WOD',hooper:'Hooper',injury:'Injury',vam:'VAM',lvp:'LVP',gps:'GPS',trimp:'TRIMP',zscore:'Z-score',inol:'INOL',weekly:'Weekly',macro:'Macro',nutrition:'Nutri',weight:'Peso',export:'Backup',feedback:'Chat'};
+  const shortLabels = {dashboard:'Home',athletes:'Atleti',tlm_team:'TLM',tlm_resistance:'WOD',hooper:'Hooper',injury:'Injury',vam:'VAM',lvp:'LVP',gps:'GPS',trimp:'TRIMP',zscore:'Z-score',inol:'INOL',weekly:'Weekly',macro:'Macro',nutrition:'Nutri',weight:'Peso',export:'Export',feedback:'Chat'};
   const icons = {dashboard:'⊞',athletes:'👥',tlm_team:'📊',tlm_resistance:'💪',hooper:'😊',injury:'🩺',vam:'🏃',lvp:'📈',gps:'📡',trimp:'❤️',zscore:'∑',inol:'⚡',weekly:'📅',macro:'🗓️',nutrition:'🥗',weight:'⚖️',export:'💾',feedback:'💬'};
   MODULES.forEach(m=>{
     const btn = document.createElement('button');

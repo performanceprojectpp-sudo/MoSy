@@ -1,5 +1,6 @@
-const CACHE = 'mosy-v1';
+const CACHE = 'mosy-v2';
 const ASSETS = [
+  './',
   './index.html',
   './manifest.json',
   './icon-192.png',
