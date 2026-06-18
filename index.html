@@ -61,6 +61,122 @@ td{padding:6px 8px;border-bottom:.5px solid var(--bd);overflow:hidden;text-overf
 @media(min-width:641px){.topbar-logo-img{display:block !important}} @media(max-width:400px){.topbar-title{font-size:12px!important}}
 #pwa-banner{display:none;position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:#e31e24;color:#fff;padding:10px 20px;border-radius:24px;font-size:13px;font-weight:500;cursor:pointer;z-index:999;box-shadow:0 4px 16px rgba(227,30,36,.5)}
 </style></head><body>
+<style>
+#license-screen{position:fixed;inset:0;background:#0d0d0d;z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px}
+#license-card{background:#1a1a1a;border:1px solid #e31e24;border-radius:16px;padding:32px 28px;max-width:380px;width:100%;box-shadow:0 8px 40px rgba(227,30,36,0.3)}
+#license-card .logo-row{display:flex;align-items:center;gap:12px;margin-bottom:24px}
+#license-card .logo-circle{width:48px;height:48px;border-radius:50%;overflow:hidden;border:2px solid #e31e24;flex-shrink:0}
+#license-card .logo-circle img{width:100%;height:100%;object-fit:cover}
+#license-card h1{color:#fff;font-size:18px;font-weight:700;margin:0;letter-spacing:0.5px}
+#license-card .sub{color:#e31e24;font-size:11px;font-weight:600;letter-spacing:1px;margin-top:2px}
+#license-card p{color:#aaa;font-size:13px;line-height:1.6;margin-bottom:20px}
+#license-card label{display:block;color:#888;font-size:12px;margin-bottom:6px}
+#license-card input{width:100%;background:#111;border:1px solid #333;border-radius:8px;padding:11px 14px;color:#fff;font-size:14px;margin-bottom:14px;font-family:inherit;box-sizing:border-box}
+#license-card input:focus{outline:none;border-color:#e31e24}
+#license-card input#lic-code{text-transform:uppercase;letter-spacing:1px;font-family:monospace}
+#license-card button{width:100%;background:#e31e24;color:#fff;border:none;border-radius:8px;padding:13px;font-size:14px;font-weight:700;cursor:pointer;letter-spacing:0.5px;font-family:inherit}
+#license-card button:active{opacity:0.85}
+#license-card .error-msg{color:#ff6b6b;font-size:12px;margin-top:10px;text-align:center;min-height:16px}
+#license-card .footer-note{color:#555;font-size:10px;text-align:center;margin-top:20px;line-height:1.5}
+</style>
+
+<div id="license-screen">
+  <div id="license-card">
+    <div class="logo-row">
+      <div class="logo-circle"><img src="logo1.jpg" alt="Performance Project"></div>
+      <div>
+        <h1>MoSy</h1>
+        <div class="sub">PERFORMANCE PROJECT</div>
+      </div>
+    </div>
+    <p>Inserisci il tuo nome (o nome del club/team) e il codice di attivazione che hai ricevuto per sbloccare l'app.</p>
+    <label for="lic-name">Nome / Club</label>
+    <input id="lic-name" type="text" placeholder="es. Mario Rossi" autocomplete="off">
+    <label for="lic-code">Codice di attivazione</label>
+    <input id="lic-code" type="text" placeholder="MOSY-XXXX-XXXX-XXXX-XXXX" autocomplete="off">
+    <button onclick="checkLicense()">Attiva MoSy</button>
+    <div class="error-msg" id="lic-error"></div>
+    <div class="footer-note">Il codice di attivazione viene fornito da Coach Claudio CSCS dopo l'acquisto. Per assistenza: performanceprojectpp@gmail.com</div>
+  </div>
+</div>
+
+<script>
+const LICENSE_KEY = 'mosy_license_v1';
+const LICENSE_YEAR = 2026; // Aggiorna se rilasci codici per anni futuri con scadenza
+
+async function sha256Hex(message){
+  const encoder = new TextEncoder();
+  const data = encoder.encode(message);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2,'0')).join('').toUpperCase();
+}
+
+async function computeExpectedCode(clientName, year){
+  const SECRET_KEY = "PerformanceProject_MoSy_2026_ChiaviSegrete_Claudio";
+  const raw = clientName.toUpperCase().trim() + '-' + year + '-' + SECRET_KEY;
+  const hashHex = await sha256Hex(raw);
+  const codeRaw = hashHex.substring(0,16);
+  return 'MOSY-' + codeRaw.substring(0,4) + '-' + codeRaw.substring(4,8) + '-' + codeRaw.substring(8,12) + '-' + codeRaw.substring(12,16);
+}
+
+async function checkLicense(){
+  const name = document.getElementById('lic-name').value.trim();
+  const code = document.getElementById('lic-code').value.trim().toUpperCase();
+  const errEl = document.getElementById('lic-error');
+  errEl.textContent = '';
+
+  if(!name){ errEl.textContent = 'Inserisci il tuo nome o nome del club.'; return; }
+  if(!code){ errEl.textContent = 'Inserisci il codice di attivazione.'; return; }
+
+  // Prova con l'anno corrente e con l'anno precedente (tolleranza per codici emessi a fine anno)
+  const currentYear = new Date().getFullYear();
+  const candidates = [currentYear, currentYear - 1, LICENSE_YEAR];
+  let valid = false;
+  for(const y of candidates){
+    const expected = await computeExpectedCode(name, y);
+    if(expected === code){ valid = true; break; }
+  }
+
+  if(valid){
+    try{
+      localStorage.setItem(LICENSE_KEY, JSON.stringify({name, code, activatedAt: Date.now()}));
+    }catch(e){}
+    document.getElementById('license-screen').style.display = 'none';
+  } else {
+    errEl.textContent = 'Codice non valido per questo nome. Verifica di aver scritto il nome esattamente come fornito al momento dell\'acquisto.';
+  }
+}
+
+function checkExistingLicense(){
+  try{
+    const stored = localStorage.getItem(LICENSE_KEY);
+    if(stored){
+      const data = JSON.parse(stored);
+      if(data && data.name && data.code){
+        document.getElementById('license-screen').style.display = 'none';
+        return true;
+      }
+    }
+  }catch(e){}
+  return false;
+}
+
+// Esegui il controllo immediatamente
+if(checkExistingLicense()){
+  // Già attivato, niente da fare
+} else {
+  // Mostra schermata (è già visibile di default, niente da fare)
+  // Permette anche di premere Enter nel campo codice per attivare
+  document.addEventListener('DOMContentLoaded', ()=>{
+    document.getElementById('lic-code')?.addEventListener('keypress', e=>{
+      if(e.key === 'Enter') checkLicense();
+    });
+  });
+}
+</script>
+
+
 <div class="app">
   <div class="sidebar" id="sb">
     <div class="logo">
@@ -117,7 +233,7 @@ function loadStateWithRecovery(){
 }
 let S=loadStateWithRecovery() || {
   athletes:[{id:'a1',name:'Atleta',surname:'1',weight:70,height:1.75,age:16,sex:'M',fcmax:195,rhr:55,notes:''},{id:'a2',name:'Atleta',surname:'2',weight:65,height:1.72,age:16,sex:'M',fcmax:198,rhr:58,notes:''}],
-  tlm:[],hoopers:[],injuries:[],vam:[],lvp:[],gps:[],trimp:[],zscore:[],inol:[],weekly:[],macro:[],weights:[],nutritionNotes:'',feedbacks:[],vdecTests:[]
+  tlm:[],hoopers:[],injuries:[],vam:[],lvp:[],gps:[],trimp:[],zscore:[],inol:[],weekly:[],macro:[],weights:[],nutritionNotes:'',feedbacks:[],vdecTests:[],jumpTests:[]
 };
 let _saveDebounce=null;
 const save=()=>{
@@ -593,7 +709,8 @@ R.tlm_resistance=()=>`${sH('Sessione di Allenamento','WOD completo · Warm-up ·
 <div id="panel-log" style="display:none">
 <div class="card">
   <div style="font-weight:700;font-size:14px;margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">📊 Log sessioni salvate</div>
-  ${tbl(['Data','Atleta','Tipo','WU','WOD Es.','sRPE','INOL tot'],S.tlm.filter(e=>e.sessionData).slice().reverse().slice(0,20).map(e=>[e.date,e.athleteName,e.type||'—',e.sessionData?.warmup?.length||0,e.sessionData?.exercises?.length||0,e.srpe,e.sessionData?.inolTotal?.toFixed(3)||'—']),'Nessuna sessione completa salvata')}
+  ${tblClickable(['Data','Atleta','Tipo','WU','WOD Es.','sRPE','INOL tot'],S.tlm.filter(e=>e.sessionData).slice().reverse().slice(0,20).map(e=>({cells:[e.date,e.athleteName,e.type||'—',e.sessionData?.warmup?.length||0,e.sessionData?.exercises?.length||0,e.srpe,e.sessionData?.inolTotal?.toFixed(3)||'—'],onclick:`viewSessionDetail('${e.id}')`})),'Nessuna sessione completa salvata · clicca una riga per i dettagli')}
+  <p style="font-size:11px;color:var(--tx2);margin-top:8px">💡 Clicca su una sessione per vederla nel dettaglio o modificarla</p>
 </div>
 <div class="card" style="margin-top:14px">
   <div style="font-weight:700;font-size:14px;margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">Log esercizi singoli</div>
@@ -875,6 +992,109 @@ function clearSession(){if(confirm('Azzerare tutta la sessione corrente?')){wind
 
 function saveRes(){const g=id=>document.getElementById(id)?.value;const aid=g('ra'),d=+g('rdur')||0,r=+g('rrpe')||0,s2=+g('rs')||0,rp=+g('rr')||0,l=+g('rl')||0;const inol=l>0&&l<100?(s2*rp)/(100-l):0;S.tlm.push({id:rid(),athleteId:aid,athleteName:athName(aid),date:g('rd'),type:'Forza',exercise:g('rex'),sets:s2,reps:rp,load:l,duration:d,rpe:r,srpe:d*r,inol});save();render('tlm_resistance');}
 
+function viewSessionDetail(sessionId){
+  const e = S.tlm.find(x=>x.id===sessionId);
+  if(!e){alert('Sessione non trovata');return;}
+  const sd = e.sessionData || {};
+  const wu = sd.warmup || [];
+  const ex = sd.exercises || [];
+  const aero = sd.aerobic || [];
+  const body = `
+    <div style="background:var(--bg2);border-radius:10px;padding:14px;margin-bottom:16px">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px">
+        <div><div style="font-size:11px;color:var(--tx2)">Atleta</div><div style="font-weight:700;font-size:14px">${esc(e.athleteName)}</div></div>
+        <div><div style="font-size:11px;color:var(--tx2)">Data</div><div style="font-weight:700;font-size:14px">${e.date}</div></div>
+        <div><div style="font-size:11px;color:var(--tx2)">Tipo</div><div style="font-weight:700;font-size:14px">${esc(e.type||'—')}</div></div>
+        <div><div style="font-size:11px;color:var(--tx2)">Durata</div><div style="font-weight:700;font-size:14px">${e.duration||'—'} min</div></div>
+        <div><div style="font-size:11px;color:var(--tx2)">RPE</div><div style="font-weight:700;font-size:14px">${e.rpe||'—'}/10</div></div>
+        <div><div style="font-size:11px;color:var(--tx2)">sRPE</div><div style="font-weight:700;font-size:14px;color:var(--pu)">${e.srpe||'—'} UA</div></div>
+      </div>
+    </div>
+    ${wu.length?`<div style="margin-bottom:16px"><div style="font-weight:700;font-size:13px;color:var(--pu);margin-bottom:8px;text-transform:uppercase">🔥 Warm-up (${wu.length})</div>
+    ${wu.map((w,i)=>`<div style="display:flex;gap:8px;padding:6px 0;border-bottom:.5px solid var(--bd);font-size:13px"><span style="color:var(--pu);font-weight:600">${i+1}.</span><span><strong>${esc(w.name)}</strong> — ${esc(w.cat||'')} · ${w.sets}×${w.reps}${w.rest?' · '+w.rest+'s rest':''}${w.notes?' · '+esc(w.notes):''}</span></div>`).join('')}</div>`:''}
+    ${ex.length?`<div style="margin-bottom:16px"><div style="font-weight:700;font-size:13px;color:var(--pu);margin-bottom:8px;text-transform:uppercase">💪 WOD (${ex.length})</div>
+    ${ex.map((x,i)=>`<div style="display:flex;gap:8px;padding:7px 0;border-bottom:.5px solid var(--bd);font-size:13px"><span style="background:var(--pu);color:#fff;border-radius:4px;padding:1px 7px;font-weight:700">${i+1}</span><div><div style="font-weight:600">${esc(x.name)}</div><div style="color:var(--tx2);font-size:12px">${x.sets}×${x.reps}${x.load?' · '+x.load+'% 1RM':''}${x.kg?' · '+x.kg+'kg':''} · ${x.rest}s rest${x.tempo?' · Tempo: '+esc(x.tempo):''} · <span style="color:var(--pu)">INOL: ${x.inol?.toFixed(3)||'—'}</span></div>${x.notes?`<div style="color:var(--tx3);font-size:11px">${esc(x.notes)}</div>`:''}</div></div>`).join('')}
+    <div style="margin-top:8px;font-size:12px;color:var(--tx2)">INOL totale sessione: <strong style="color:var(--pu)">${sd.inolTotal?.toFixed(3)||'—'}</strong></div></div>`:''}
+    ${aero.length?`<div><div style="font-weight:700;font-size:13px;color:#059669;margin-bottom:8px;text-transform:uppercase">🫀 Aerobico (${aero.length})</div>
+    ${aero.map((a,i)=>`<div style="display:flex;gap:8px;padding:6px 0;border-bottom:.5px solid var(--bd);font-size:13px"><span style="background:#059669;color:#fff;border-radius:4px;padding:1px 7px;font-weight:700">${i+1}</span><div><div style="font-weight:600">${esc(a.name)}</div><div style="color:var(--tx2);font-size:12px">${esc(a.summary||'')}${a.notes?' · '+esc(a.notes):''}</div></div></div>`).join('')}</div>`:''}
+    ${!wu.length&&!ex.length&&!aero.length?'<p style="color:var(--tx2);font-size:13px">Sessione senza esercizi dettagliati (sessione semplice).</p>':''}
+  `;
+  const footer = `
+    <button class="primary" onclick="closeMosyModal();editSavedSession('${sessionId}')" style="flex:1">✏️ Modifica sessione</button>
+    <button class="secondary" style="color:var(--erT)" onclick="deleteSavedSession('${sessionId}')">🗑️ Elimina</button>
+  `;
+  openMosyModal(`Sessione ${e.date}`, body, footer);
+}
+
+function editSavedSession(sessionId){
+  const e = S.tlm.find(x=>x.id===sessionId);
+  if(!e){alert('Sessione non trovata');return;}
+  const sd = e.sessionData || {warmup:[],exercises:[],aerobic:[]};
+  const athOpts = S.athletes.map(a=>`<option value="${a.id}" ${a.id===e.athleteId?'selected':''}>${esc(a.name)} ${esc(a.surname)}</option>`).join('');
+  const typeOpts = ['Forza','Forza-Potenza','Ipertrofia','Endurance Muscolare','Circuit Training','HIIT','Mixed S&C'].map(t=>`<option value="${t}" ${t===e.type?'selected':''}>${t}</option>`).join('');
+
+  const body = `
+    <div class="grid2" style="gap:10px">
+      <div><label>Atleta</label><select id="edit-sess-ath">${athOpts}</select></div>
+      <div><label>Data</label><input id="edit-sess-date" type="date" value="${e.date}"></div>
+      <div><label>Tipo</label><select id="edit-sess-type">${typeOpts}</select></div>
+      <div><label>Durata (min)</label><input id="edit-sess-dur" type="number" value="${e.duration||0}" min="0" max="300"></div>
+      <div><label>RPE (0-10)</label><input id="edit-sess-rpe" type="number" value="${e.rpe||0}" min="0" max="10"></div>
+      <div class="metric-card"><div class="metric-label">sRPE (auto)</div><div class="metric-value" id="edit-sess-srpe-display" style="color:var(--pu)">${e.srpe||0}</div></div>
+    </div>
+    <div style="margin-top:14px;padding:10px;background:var(--bg2);border-radius:8px;font-size:12px;color:var(--tx2)">
+      Nota: la modifica rapida aggiorna i dati generali della sessione (atleta, data, tipo, durata, RPE). Per modificare i singoli esercizi del WOD o Warm-up in dettaglio, elimina questa sessione e creala nuovamente nel modulo TLM Resistance.
+    </div>
+  `;
+  const footer = `
+    <button class="primary" onclick="saveEditedSession('${sessionId}')" style="flex:1">💾 Salva modifiche</button>
+    <button class="secondary" onclick="viewSessionDetail('${sessionId}')">← Torna al dettaglio</button>
+  `;
+  openMosyModal(`Modifica sessione`, body, footer);
+
+  setTimeout(()=>{
+    const upd=()=>{
+      const d=+document.getElementById('edit-sess-dur')?.value||0;
+      const r=+document.getElementById('edit-sess-rpe')?.value||0;
+      const disp=document.getElementById('edit-sess-srpe-display');
+      if(disp)disp.textContent=d*r;
+    };
+    document.getElementById('edit-sess-dur')?.addEventListener('input',upd);
+    document.getElementById('edit-sess-rpe')?.addEventListener('input',upd);
+  },50);
+}
+
+function saveEditedSession(sessionId){
+  const e = S.tlm.find(x=>x.id===sessionId);
+  if(!e)return;
+  const aid = document.getElementById('edit-sess-ath')?.value;
+  const date = document.getElementById('edit-sess-date')?.value;
+  const type = document.getElementById('edit-sess-type')?.value;
+  const dur = +document.getElementById('edit-sess-dur')?.value||0;
+  const rpe = +document.getElementById('edit-sess-rpe')?.value||0;
+  e.athleteId = aid;
+  e.athleteName = athName(aid);
+  e.date = date;
+  e.type = type;
+  e.duration = dur;
+  e.rpe = rpe;
+  e.srpe = dur*rpe;
+  save();
+  closeMosyModal();
+  render('tlm_resistance');
+  setTimeout(()=>switchTab('log'),20);
+}
+
+function deleteSavedSession(sessionId){
+  if(!confirm("Eliminare definitivamente questa sessione? L'azione non è reversibile."))return;
+  S.tlm = S.tlm.filter(x=>x.id!==sessionId);
+  save();
+  closeMosyModal();
+  render('tlm_resistance');
+  setTimeout(()=>switchTab('log'),20);
+}
+
+
 // ══ HOOPER ══
 R.hooper=()=>{
   const sc=[{k:'fatica',l:'Fatica'},{k:'sonno',l:'Sonno'},{k:'doms',l:'DOMS'},{k:'stress',l:'Stress'},{k:'umore',l:'Umore'}];
@@ -901,20 +1121,158 @@ function saveHooper(){const g=k=>+document.getElementById(`h${k}`)?.value||0,aid
 // ══ INJURY MAP ══
 R.injury=()=>{
   const grp=[{l:'Testa/Collo',z:['Head','NeckFront']},{l:'Spalle/Trapezi',z:['L_Shoulder','R_Shoulder','L_UpperTrap','R_UpperTrap']},{l:'Braccia/Gomiti/Polsi',z:['L_Arm','R_Arm','L_Elbow','R_Elbow','L_Wrist','R_Wrist','L_Hand','R_Hand']},{l:'Petto/Addome',z:['L_Chest','R_Chest','L_Abs','R_Abs']},{l:'Anca/Glutei',z:['L_Hip','R_Hip','L_Glute','R_Glute']},{l:'Schiena',z:['L_BackUp','R_BackUp','L_BackLo','R_BackLo']},{l:'Coscia/Ham/Add',z:['L_Quad','R_Quad','L_Ham','R_Ham','L_Add','R_Add']},{l:'Ginocchio/Polpaccio/Caviglia',z:['L_Knee','R_Knee','L_Calf','R_Calf','L_Tibia','R_Tibia','L_Ankle','R_Ankle']}];
-  return sH('Injury Map','40 zone corporee · Scala gravità 0 (nessuno) → 5 (grave)')+
+  const openCount = S.injuries.filter(i=>i.status!=='closed').length;
+  return sH('Injury Map',`40 zone corporee · Scala gravità 0-5 ${openCount>0?`· <span style="color:var(--erT);font-weight:700">${openCount} infortuni aperti</span>`:''}`)+
   `<div class="grid2"><div class="card">
+  <div style="font-weight:700;font-size:13px;margin-bottom:10px;text-transform:uppercase">Nuovo referto</div>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">${asel('ia')}${inp('id2','Data','date',today())}</div>
   ${grp.map(g=>`<div style="margin-bottom:12px"><div style="font-size:12px;font-weight:500;color:var(--tx2);margin-bottom:5px">${g.l}</div>
   <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:4px">
   ${g.z.map(z=>`<div id="iw-${z}" style="display:flex;align-items:center;gap:6px;border:.5px solid var(--bd);border-radius:6px;padding:4px 7px"><span style="font-size:11px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${z.replace('_',' ')}</span><select id="iz-${z}" style="width:44px;font-size:11px;padding:2px;margin:0" onchange="updInjC('${z}')"><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></div>`).join('')}
   </div></div>`).join('')}
-  ${inp('in2','Note cliniche','text','')}
-  <button class="primary" onclick="saveInj()">💾 Salva referto</button></div>
-  <div class="card"><div style="font-weight:500;font-size:13px;margin-bottom:8px">Storico infortuni</div>
-  ${tbl(['Data','Atleta','Zone','Max'],S.injuries.slice().reverse().slice(0,15).map(inj=>{const zz=BODY_ZONES.filter(z=>inj[z]>0);const mx=zz.reduce((m,z)=>Math.max(m,inj[z]),0);return[inj.date,inj.athleteName,zz.slice(0,3).join(', ')+(zz.length>3?'...':''),bdg(mx+'/5',mx>=4?'er':mx>=3?'wa':'in')];}))}</div></div>`;
+  ${inp('in2','Note cliniche / Diagnosi','text','')}
+  <button class="primary" onclick="saveInj()" style="width:100%">💾 Salva nuovo referto</button>
+  </div>
+  <div>
+  ${openCount>0?`<div class="card" style="border-left:3px solid var(--erT);margin-bottom:14px">
+    <div style="font-weight:700;font-size:13px;margin-bottom:8px;color:var(--erT);text-transform:uppercase">⚠️ Infortuni attualmente aperti</div>
+    ${tblClickable(['Data','Atleta','Zone','Max'],S.injuries.filter(i=>i.status!=='closed').slice().reverse().map(inj=>{
+      const zz=BODY_ZONES.filter(z=>inj[z]>0);
+      const mx=zz.reduce((m,z)=>Math.max(m,inj[z]),0);
+      return {cells:[inj.date,inj.athleteName,zz.slice(0,3).join(', ')+(zz.length>3?'...':''),bdg(mx+'/5',mx>=4?'er':mx>=3?'wa':'in')],onclick:`viewInjuryDetail('${inj.id}')`};
+    }),'Nessun infortunio aperto')}
+  </div>`:''}
+  <div class="card">
+    <div style="font-weight:700;font-size:13px;margin-bottom:8px;text-transform:uppercase">Storico completo infortuni</div>
+    ${tblClickable(['Data','Atleta','Zone','Max','Stato'],S.injuries.slice().reverse().slice(0,20).map(inj=>{
+      const zz=BODY_ZONES.filter(z=>inj[z]>0);
+      const mx=zz.reduce((m,z)=>Math.max(m,inj[z]),0);
+      const isClosed = inj.status==='closed';
+      return {cells:[inj.date,inj.athleteName,zz.slice(0,3).join(', ')+(zz.length>3?'...':''),bdg(mx+'/5',mx>=4?'er':mx>=3?'wa':'in'),isClosed?bdg('Risolto','ok'):bdg('Aperto','er')],onclick:`viewInjuryDetail('${inj.id}')`};
+    }),'Nessun infortunio registrato')}
+    <p style="font-size:11px;color:var(--tx2);margin-top:8px">💡 Clicca su un infortunio per vederlo nel dettaglio, modificarlo o chiuderlo</p>
+  </div>
+  </div>
+  </div>`;
 };
 function updInjC(z){const v=+document.getElementById('iz-'+z)?.value;const w=document.getElementById('iw-'+z);if(w)w.style.background=v===0?'':v<=1?'#f0fdf4':v<=2?'#fef9c3':v<=3?'#fed7aa':'#fecaca';}
-function saveInj(){const aid=document.getElementById('ia')?.value;const e={id:rid(),athleteId:aid,athleteName:athName(aid),date:document.getElementById('id2')?.value,notes:document.getElementById('in2')?.value};BODY_ZONES.forEach(z=>{e[z]=+document.getElementById('iz-'+z)?.value||0;});S.injuries.push(e);save();render('injury');}
+function saveInj(){
+  const aid=document.getElementById('ia')?.value;
+  const e={id:rid(),athleteId:aid,athleteName:athName(aid),date:document.getElementById('id2')?.value,notes:document.getElementById('in2')?.value,status:'open',statusHistory:[]};
+  BODY_ZONES.forEach(z=>{e[z]=+document.getElementById('iz-'+z)?.value||0;});
+  S.injuries.push(e);
+  save();
+  render('injury');
+}
+
+function viewInjuryDetail(injId){
+  const inj = S.injuries.find(x=>x.id===injId);
+  if(!inj){alert('Infortunio non trovato');return;}
+  const zz = BODY_ZONES.filter(z=>inj[z]>0);
+  const isClosed = inj.status==='closed';
+  const body = `
+    <div style="background:var(--bg2);border-radius:10px;padding:14px;margin-bottom:16px">
+      <div class="grid2" style="gap:10px">
+        <div><div style="font-size:11px;color:var(--tx2)">Atleta</div><div style="font-weight:700">${esc(inj.athleteName)}</div></div>
+        <div><div style="font-size:11px;color:var(--tx2)">Data segnalazione</div><div style="font-weight:700">${inj.date}</div></div>
+        <div><div style="font-size:11px;color:var(--tx2)">Stato attuale</div><div>${isClosed?bdg('Risolto','ok'):bdg('Aperto','er')}</div></div>
+        <div><div style="font-size:11px;color:var(--tx2)">Gravità massima</div><div style="font-weight:700">${Math.max(...zz.map(z=>inj[z]),0)}/5</div></div>
+      </div>
+    </div>
+    <div style="margin-bottom:14px">
+      <div style="font-weight:700;font-size:13px;margin-bottom:8px;text-transform:uppercase">Zone interessate</div>
+      ${zz.map(z=>`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:.5px solid var(--bd);font-size:13px">
+        <span>${z.replace('_',' ')}</span>
+        ${bdg(inj[z]+'/5',inj[z]>=4?'er':inj[z]>=3?'wa':'in')}
+      </div>`).join('')}
+    </div>
+    ${inj.notes?`<div style="margin-bottom:14px"><div style="font-weight:700;font-size:13px;margin-bottom:6px;text-transform:uppercase">Note cliniche</div><div style="padding:10px;background:var(--bg2);border-radius:8px;font-size:13px">${esc(inj.notes)}</div></div>`:''}
+    ${inj.statusHistory&&inj.statusHistory.length?`<div><div style="font-weight:700;font-size:13px;margin-bottom:6px;text-transform:uppercase">Storico aggiornamenti</div>
+    ${inj.statusHistory.map(h=>`<div style="font-size:12px;color:var(--tx2);padding:4px 0;border-bottom:.5px solid var(--bd)">${h.date} — ${esc(h.note||(h.status==='closed'?'Infortunio chiuso/risolto':'Infortunio riaperto'))}</div>`).join('')}
+    </div>`:''}
+  `;
+  const footer = `
+    ${isClosed
+      ? `<button class="primary" onclick="reopenInjury('${injId}')" style="flex:1">🔄 Riapri infortunio</button>`
+      : `<button class="primary" onclick="closeInjuryPrompt('${injId}')" style="flex:1;background:var(--okT)">✓ Chiudi (segna come risolto)</button>`
+    }
+    <button class="secondary" onclick="editInjury('${injId}')">✏️ Modifica</button>
+    <button class="secondary" style="color:var(--erT)" onclick="deleteInjury('${injId}')">🗑️</button>
+  `;
+  openMosyModal(`Infortunio — ${inj.athleteName}`, body, footer);
+}
+
+function closeInjuryPrompt(injId){
+  const note = prompt('Nota di chiusura (opzionale): es. esito esami, data ripresa allenamento...') || '';
+  const inj = S.injuries.find(x=>x.id===injId);
+  if(!inj)return;
+  inj.status = 'closed';
+  if(!inj.statusHistory)inj.statusHistory=[];
+  inj.statusHistory.push({date:today(),status:'closed',note});
+  save();
+  closeMosyModal();
+  render('injury');
+}
+
+function reopenInjury(injId){
+  const inj = S.injuries.find(x=>x.id===injId);
+  if(!inj)return;
+  inj.status = 'open';
+  if(!inj.statusHistory)inj.statusHistory=[];
+  inj.statusHistory.push({date:today(),status:'open'});
+  save();
+  closeMosyModal();
+  render('injury');
+}
+
+function editInjury(injId){
+  const inj = S.injuries.find(x=>x.id===injId);
+  if(!inj)return;
+  const grp=[{l:'Testa/Collo',z:['Head','NeckFront']},{l:'Spalle/Trapezi',z:['L_Shoulder','R_Shoulder','L_UpperTrap','R_UpperTrap']},{l:'Braccia/Gomiti/Polsi',z:['L_Arm','R_Arm','L_Elbow','R_Elbow','L_Wrist','R_Wrist','L_Hand','R_Hand']},{l:'Petto/Addome',z:['L_Chest','R_Chest','L_Abs','R_Abs']},{l:'Anca/Glutei',z:['L_Hip','R_Hip','L_Glute','R_Glute']},{l:'Schiena',z:['L_BackUp','R_BackUp','L_BackLo','R_BackLo']},{l:'Coscia/Ham/Add',z:['L_Quad','R_Quad','L_Ham','R_Ham','L_Add','R_Add']},{l:'Ginocchio/Polpaccio/Caviglia',z:['L_Knee','R_Knee','L_Calf','R_Calf','L_Tibia','R_Tibia','L_Ankle','R_Ankle']}];
+  const athOpts = S.athletes.map(a=>`<option value="${a.id}" ${a.id===inj.athleteId?'selected':''}>${esc(a.name)} ${esc(a.surname)}</option>`).join('');
+  const body = `
+    <div class="grid2" style="gap:10px">
+      <div><label>Atleta</label><select id="edit-inj-ath">${athOpts}</select></div>
+      <div><label>Data</label><input id="edit-inj-date" type="date" value="${inj.date}"></div>
+    </div>
+    ${grp.map(g=>`<div style="margin-bottom:12px"><div style="font-size:12px;font-weight:500;color:var(--tx2);margin-bottom:5px">${g.l}</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:4px">
+    ${g.z.map(z=>`<div style="display:flex;align-items:center;gap:6px;border:.5px solid var(--bd);border-radius:6px;padding:4px 7px"><span style="font-size:11px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${z.replace('_',' ')}</span><select id="edit-inj-${z}" style="width:44px;font-size:11px;padding:2px;margin:0"><option ${inj[z]===0?'selected':''}>0</option><option ${inj[z]===1?'selected':''}>1</option><option ${inj[z]===2?'selected':''}>2</option><option ${inj[z]===3?'selected':''}>3</option><option ${inj[z]===4?'selected':''}>4</option><option ${inj[z]===5?'selected':''}>5</option></select></div>`).join('')}
+    </div></div>`).join('')}
+    <div><label>Note cliniche</label><textarea id="edit-inj-notes" rows="3" style="resize:vertical">${esc(inj.notes||'')}</textarea></div>
+  `;
+  const footer = `
+    <button class="primary" onclick="saveEditedInjury('${injId}')" style="flex:1">💾 Salva modifiche</button>
+    <button class="secondary" onclick="viewInjuryDetail('${injId}')">← Torna al dettaglio</button>
+  `;
+  openMosyModal('Modifica infortunio', body, footer);
+}
+
+function saveEditedInjury(injId){
+  const inj = S.injuries.find(x=>x.id===injId);
+  if(!inj)return;
+  const aid = document.getElementById('edit-inj-ath')?.value;
+  inj.athleteId = aid;
+  inj.athleteName = athName(aid);
+  inj.date = document.getElementById('edit-inj-date')?.value;
+  inj.notes = document.getElementById('edit-inj-notes')?.value;
+  BODY_ZONES.forEach(z=>{
+    const el = document.getElementById('edit-inj-'+z);
+    if(el) inj[z] = +el.value||0;
+  });
+  save();
+  closeMosyModal();
+  render('injury');
+}
+
+function deleteInjury(injId){
+  if(!confirm("Eliminare definitivamente questo referto infortunio?"))return;
+  S.injuries = S.injuries.filter(x=>x.id!==injId);
+  save();
+  closeMosyModal();
+  render('injury');
+}
+
 
 // ══ VAM-MAS ══
 R.vam=()=>{
@@ -1059,6 +1417,10 @@ return sH('VAM-MAS — Massima Velocità Aerobica','Test di campo · Karvonen ·
   ${asel('vdec-ath')}
   ${inp('vdec-date','Data','date',today())}
   ${inp('vdec-exname','Nome esercitazione (es. 6x30m sprint)','text','Sprint ripetuti 6x30m')}
+  <div class="grid2" style="gap:10px">
+    ${inp('vdec-load','Carico aggiunto (kg, 0 se a corpo libero)','number',0,'min=0 max=100 step=0.5')}
+    ${sel('vdec-loadtype','Tipo di carico',[{v:'none',l:'Nessuno (corpo libero)'},{v:'sled',l:'Slitta (Sled)'},{v:'vest',l:'Giubbotto zavorrato'},{v:'band',l:'Resistenza elastica'},{v:'other',l:'Altro'}],'none')}
+  </div>
   <div style="font-size:12px;font-weight:600;color:var(--tx2);margin:10px 0 6px;text-transform:uppercase">Inserisci i tempi di ogni ripetizione (secondi)</div>
   <div id="vdec-reps-inputs" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px"></div>
   <div style="display:flex;gap:8px;margin-bottom:12px">
@@ -1085,7 +1447,7 @@ return sH('VAM-MAS — Massima Velocità Aerobica','Test di campo · Karvonen ·
   </div>
   <div class="card">
     <div style="font-weight:600;font-size:13px;margin-bottom:8px">Storico test Vdec</div>
-    ${tbl(['Data','Atleta','Esercitazione','N.Rep','Vdec%'],(S.vdecTests||[]).slice().reverse().slice(0,10).map(v=>[v.date,v.athleteName,v.exname,v.times.length,bdg(v.vdec.toFixed(1)+'%',v.vdec<5?'ok':v.vdec<10?'ok':v.vdec<15?'wa':'er')]),'Nessun test Vdec registrato')}
+    ${tbl(['Data','Atleta','Esercitazione','N.Rep','Carico','Vdec%'],(S.vdecTests||[]).slice().reverse().slice(0,10).map(v=>[v.date,v.athleteName,v.exname,v.times.length,v.load>0?v.load+'kg':'Libero',bdg(v.vdec.toFixed(1)+'%',v.vdec<5?'ok':v.vdec<10?'ok':v.vdec<15?'wa':'er')]),'Nessun test Vdec registrato')}
   </div>
 </div>
 </div>
@@ -1350,6 +1712,8 @@ function calcVdec(){
   }
   if(times.length<2){alert('Inserisci almeno 2 tempi validi');return;}
   const dist=+document.getElementById('vdec-dist')?.value||30;
+  const load=+document.getElementById('vdec-load')?.value||0;
+  const loadType=document.getElementById('vdec-loadtype')?.value||'none';
   const velocities=times.map(t=>dist/t);
   const vBest=Math.max(...velocities);
   const vMean=velocities.reduce((s,v)=>s+v,0)/velocities.length;
@@ -1368,12 +1732,12 @@ function calcVdec(){
       <div class="metric-card"><div class="metric-label">Tempo peggiore</div><div class="metric-value" style="font-size:16px">${tWorst.toFixed(2)}s</div></div>
     </div>
     <div style="font-size:11px;color:var(--tx2);padding:8px;background:var(--bg2);border-radius:6px">
-      ${times.length} ripetizioni × ${dist}m · Tempo medio: ${tMean.toFixed(2)}s
+      ${times.length} ripetizioni × ${dist}m · Tempo medio: ${tMean.toFixed(2)}s${load>0?` · Carico: ${load}kg (${({none:'Corpo libero',sled:'Slitta',vest:'Giubbotto zavorrato',band:'Resistenza elastica',other:'Altro'}[loadType]||'Altro')})`:''}
     </div>
   `;
   const el=document.getElementById('vdec-result');
   if(el)el.innerHTML=html;
-  window._lastVdecResult={vdec,times:[...times],dist,vBest,vMean};
+  window._lastVdecResult={vdec,times:[...times],dist,vBest,vMean,load,loadType};
   const saveBtn=document.getElementById('vdec-save-btn');
   if(!saveBtn){
     const card=document.getElementById('vdec-result-card');
@@ -1407,6 +1771,8 @@ function saveVdecTest(){
     vdec:window._lastVdecResult.vdec,
     vBest:window._lastVdecResult.vBest,
     vMean:window._lastVdecResult.vMean,
+    load:window._lastVdecResult.load||0,
+    loadType:window._lastVdecResult.loadType||'none',
   });
   save();
   alert('Test Vdec salvato!');
@@ -1416,42 +1782,516 @@ function saveVdecTest(){
 
 
 // ══ LVP ══
-R.lvp=()=>sH('Load-Velocity Profile (LVP)','Regressione lineare · Stima 1RM · Max Power · R²')+
-`<div class="grid2"><div class="card">${asel('lva')}${inp('lvd','Data','date',today())}
-${`<div><label for='lvex'>Esercizio</label><select id='lvex' style='font-size:12px'></select></div>`}
-<div class="grid2" style="gap:10px">${inp('lvl','Carico (kg)','number',60,'min=1 max=500')}${inp('lvv','Velocità (m/s)','number',0.8,'min=0.01 max=3.0 step=0.01')}</div>
-<div style="font-size:13px;margin:2px 0 12px;color:var(--tx2)">Zona: <strong id="lv-z" style="color:var(--pu)">Accel.Str.</strong></div>
-<button class="primary" onclick="saveLVP()">➕ Aggiungi punto</button></div>
-<div><div class="grid2" style="margin-bottom:12px;gap:8px">${mC('1RM stimato','<span id="lv1">—</span>','kg','var(--pu)')}${mC('Max Power','<span id="lvmp">—</span>','kg')}${mC('R²','<span id="lvr2">—</span>','')}${mC('Punti','<span id="lvpt">0</span>','')}</div>
-<div class="card" id="lveq" style="display:none;margin-bottom:12px"><div style="font-size:12px;color:var(--tx2);margin-bottom:4px">Equazione LVP</div><div id="lveqt" style="font-family:monospace;font-size:12px;word-break:break-all"></div></div>
-<div class="card"><div style="font-weight:500;font-size:13px;margin-bottom:8px">Punti profilo</div><div id="lv-t"></div></div></div></div>`;
+R.lvp=()=>{
+  return sH('Load-Velocity Profile & Force-Velocity Profiling','LVP tradizionale · SJ/CMJ · Bosco Index · Profilo Samozino')+
+  `<div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap">
+    <button class="lvp-tab-btn active" id="lvptab-trad" onclick="switchLvpTab('trad')" style="padding:7px 16px;border-radius:20px;border:1.5px solid var(--pu);background:var(--pu);color:#fff;cursor:pointer;font-size:12px;font-weight:600;font-family:inherit">LVP ESERCIZI</button>
+    <button class="lvp-tab-btn" id="lvptab-jump" onclick="switchLvpTab('jump')" style="padding:7px 16px;border-radius:20px;border:1.5px solid var(--bd2);background:transparent;color:var(--tx2);cursor:pointer;font-size:12px;font-weight:600;font-family:inherit">SJ / CMJ · BOSCO · SAMOZINO</button>
+  </div>
+
+  <div id="lvppanel-trad">
+  <div class="grid2"><div class="card">
+    ${asel('lva')}${inp('lvd','Data','date',today())}
+    ${`<div><label for='lvex'>Esercizio</label><select id='lvex' style='font-size:12px'></select></div>`}
+    <div class="grid2" style="gap:10px">${inp('lvl','Carico (kg)','number',60,'min=1 max=500')}${inp('lvv','Velocità (m/s)','number',0.8,'min=0.01 max=3.0 step=0.01')}</div>
+    <div style="font-size:13px;margin:2px 0 12px;color:var(--tx2)">Zona: <strong id="lv-z" style="color:var(--pu)">Accel.Str.</strong></div>
+    <button class="primary" onclick="saveLVP()" style="width:100%">➕ Aggiungi punto</button>
+  </div>
+  <div>
+    <div class="grid2" style="margin-bottom:12px;gap:8px">${mC('1RM stimato','<span id="lv1">—</span>','kg','var(--pu)')}${mC('Max Power','<span id="lvmp">—</span>','kg')}${mC('R²','<span id="lvr2">—</span>','')}${mC('Punti','<span id="lvpt">0</span>','')}</div>
+    <div class="card" id="lveq" style="display:none;margin-bottom:12px"><div style="font-size:12px;color:var(--tx2);margin-bottom:4px">Equazione LVP</div><div id="lveqt" style="font-family:monospace;font-size:12px;word-break:break-all"></div></div>
+    <div class="card" style="margin-bottom:12px"><div style="font-weight:500;font-size:13px;margin-bottom:8px">Grafico Load-Velocity</div><div id="lv-chart"></div></div>
+    <div class="card"><div style="font-weight:500;font-size:13px;margin-bottom:8px">Punti profilo <span style="font-size:11px;color:var(--tx2);font-weight:400">(clicca per modificare)</span></div><div id="lv-t"></div></div>
+  </div></div>
+  <div class="card" style="margin-top:14px">
+    <div style="font-weight:700;font-size:13px;margin-bottom:10px;text-transform:uppercase">Tabella consigli di carico per obiettivo</div>
+    ${tbl(['Obiettivo','Range velocità','% 1RM consigliata','Reps tipiche'],[
+      ['Starting Strength','&gt;1.3 m/s','0-30%','1-3'],
+      ['Speed-Strength','1.0-1.3 m/s','30-50%','3-5'],
+      ['Strength-Speed','0.75-1.0 m/s','50-70%','3-6'],
+      ['Accelerative Strength','0.5-0.75 m/s','70-85%','3-6'],
+      ['Absolute Strength','&lt;0.5 m/s','85-100%','1-3'],
+    ])}
+    <p style="font-size:10px;color:var(--tx3);margin-top:8px">Fonte: Mann, B. et al. (NCAA VBT guidelines); González-Badillo &amp; Sánchez-Medina (2010)</p>
+  </div>
+  </div>
+
+  <div id="lvppanel-jump" style="display:none">
+  <div class="grid2">
+  <div class="card">
+    <div style="font-weight:700;font-size:13px;margin-bottom:10px;text-transform:uppercase">Nuovo test SJ / CMJ</div>
+    ${asel('jmp-ath')}${inp('jmp-date','Data','date',today())}
+    <div class="grid2" style="gap:10px">
+      ${inp('jmp-mass','Peso corporeo (kg)','number',75,'min=30 max=200 step=0.1')}
+      ${inp('jmp-hpo','Push-off distance (m)','number',0.40,'min=0.25 max=0.60 step=0.01')}
+    </div>
+    <p style="font-size:10px;color:var(--tx2);margin:-6px 0 10px">Push-off distance: distanza verticale percorsa dal centro di massa durante la spinta (tipicamente 0.35-0.45m, stima 0.30×statura se non misurata)</p>
+    <div style="font-size:12px;font-weight:600;color:var(--tx2);margin:6px 0;text-transform:uppercase">Squat Jump (SJ) — corpo libero</div>
+    <div class="grid2" style="gap:10px">${inp('jmp-sj-h','Altezza SJ (cm)','number',30,'min=5 max=80 step=0.1')}${inp('jmp-sj-load','Carico extra SJ (kg, 0 se libero)','number',0,'min=0 max=150 step=0.5')}</div>
+    <div style="font-size:12px;font-weight:600;color:var(--tx2);margin:10px 0 6px;text-transform:uppercase">Countermovement Jump (CMJ)</div>
+    <div class="grid2" style="gap:10px">${inp('jmp-cmj-h','Altezza CMJ (cm)','number',36,'min=5 max=90 step=0.1')}</div>
+    <div style="font-size:12px;font-weight:600;color:var(--tx2);margin:10px 0 6px;text-transform:uppercase">Secondo punto SJ caricato (per Samozino F-V, opzionale ma raccomandato)</div>
+    <p style="font-size:10px;color:var(--tx2);margin:-4px 0 8px">Per calcolare F0/V0/Pmax in modo scientificamente valido serve un secondo salto con carico aggiunto (metodo a 2 punti, García-Ramos et al.). Senza secondo punto, verranno mostrati solo i valori del singolo salto.</p>
+    <div class="grid2" style="gap:10px">${inp('jmp-sj2-load','Carico 2° SJ (kg)','number',0,'min=0 max=150 step=0.5')}${inp('jmp-sj2-h','Altezza 2° SJ (cm)','number',0,'min=0 max=80 step=0.1')}</div>
+    <button class="primary" onclick="calcJumpProfile()" style="width:100%;margin-top:8px">📊 Calcola profilo</button>
+  </div>
+  <div>
+    <div class="card" style="margin-bottom:12px">
+      <div style="font-weight:700;font-size:13px;margin-bottom:10px;text-transform:uppercase">Bosco Index</div>
+      <div id="bosco-result"><p style="font-size:12px;color:var(--tx2)">Inserisci SJ e CMJ e calcola.</p></div>
+    </div>
+    <div class="card" style="margin-bottom:12px">
+      <div style="font-weight:600;font-size:12px;margin-bottom:8px">Interpretazione Bosco Index</div>
+      ${tbl(['Bosco Index','Interpretazione'],[
+        ['&lt; 33%',bdg('Lavoro strutturale necessario','wa')],
+        ['= 33%',bdg('Valore ottimale','ok')],
+        ['&gt; 33%',bdg('Buone caratteristiche neuromuscolari','ok')],
+      ])}
+      <p style="font-size:10px;color:var(--tx3);margin-top:6px">Bosco Index = (CMJ−SJ)/SJ × 100. Misura il contributo del ciclo stiramento-accorciamento (SSC). Fonte: Bosco, C. (1983); Bosco et al. (1982) Eur J Appl Physiol.</p>
+    </div>
+    <div class="card" id="samozino-result-card" style="margin-bottom:12px;display:none">
+      <div style="font-weight:700;font-size:13px;margin-bottom:10px;text-transform:uppercase">Profilo Forza-Velocità (Samozino)</div>
+      <div id="samozino-result"></div>
+    </div>
+    <div class="card" id="samozino-chart-card" style="display:none">
+      <div style="font-weight:600;font-size:12px;margin-bottom:8px">Grafico profilo F-V: reale vs ottimale</div>
+      <div id="samozino-chart"></div>
+    </div>
+  </div>
+  </div>
+  <div class="card" style="margin-top:14px">
+    <div style="font-weight:700;font-size:13px;margin-bottom:8px;text-transform:uppercase">Storico test SJ/CMJ</div>
+    ${tblClickable(['Data','Atleta','SJ (cm)','CMJ (cm)','Bosco %','F0 (N/kg)','V0 (m/s)','Pmax (W/kg)'],
+      (S.jumpTests||[]).slice().reverse().slice(0,15).map(j=>({
+        cells:[j.date,j.athleteName,j.sjHeight?.toFixed(1)||'—',j.cmjHeight?.toFixed(1)||'—',j.bosco!=null?bdg(j.bosco.toFixed(1)+'%',j.bosco>=33?'ok':'wa'):'—',j.F0PerKg?.toFixed(2)||'—',j.V0?.toFixed(2)||'—',j.PmaxPerKg?.toFixed(2)||'—'],
+        onclick:`viewJumpTestDetail('${j.id}')`
+      })),'Nessun test SJ/CMJ registrato · clicca una riga per i dettagli')}
+  </div>
+  </div>`;
+};
+
+function switchLvpTab(tab){
+  ['trad','jump'].forEach(t=>{
+    const p=document.getElementById('lvppanel-'+t);if(p)p.style.display=t===tab?'':'none';
+    const b=document.getElementById('lvptab-'+t);
+    if(b){if(t===tab){b.style.background='var(--pu)';b.style.color='#fff';b.style.borderColor='var(--pu)';}
+    else{b.style.background='transparent';b.style.color='var(--tx2)';b.style.borderColor='var(--bd2)';}}
+  });
+}
+
 INI.lvp=()=>{
   const upZ=()=>{const v=+document.getElementById('lvv')?.value||0;const z=document.getElementById('lv-z');if(z)z.textContent=v>1.3?'Starting Str.':v>1.0?'Speed Str.':v>0.75?'Strength-Speed':v>0.5?'Accel. Str.':'Abs. Strength';};
-  const upP=()=>{const sid=document.getElementById('lva')?.value;const pts=S.lvp.filter(v=>v.athleteId==sid).sort((a,b)=>a.load-b.load);document.getElementById('lvpt').textContent=pts.length;const tt=document.getElementById('lv-t');if(tt)tt.innerHTML=tbl(['Data','Eserc.','Kg','m/s','Zona'],pts.map(p=>[p.date,p.exercise,p.load,p.velocity,p.zone]));if(pts.length>=2){const n=pts.length,sX=pts.reduce((s,p)=>s+p.load,0),sY=pts.reduce((s,p)=>s+p.velocity,0),sXY=pts.reduce((s,p)=>s+p.load*p.velocity,0),sX2=pts.reduce((s,p)=>s+p.load*p.load,0);const M=(n*sXY-sX*sY)/(n*sX2-sX*sX),B=(sY-M*sX)/n;const yM=sY/n,ssR=pts.reduce((s,p)=>s+Math.pow(p.velocity-(M*p.load+B),2),0),ssT=pts.reduce((s,p)=>s+Math.pow(p.velocity-yM,2),0);const r2=ssT>0?1-ssR/ssT:0;document.getElementById('lv1').textContent=M!==0?Math.round(-B/M):'—';document.getElementById('lvmp').textContent=M!==0?Math.round(-B/(2*M)):'—';document.getElementById('lvr2').textContent=r2.toFixed(3);const ec=document.getElementById('lveq');if(ec)ec.style.display='';const eq=document.getElementById('lveqt');if(eq)eq.textContent=`v = ${M.toFixed(5)} × load + ${B.toFixed(4)} | R² = ${r2.toFixed(3)}`;} };
-  document.getElementById('lvv')?.addEventListener('input',upZ);document.getElementById('lva')?.addEventListener('change',upP);upZ();upP();
+  const upP=()=>{
+    const sid=document.getElementById('lva')?.value;
+    const pts=S.lvp.filter(v=>v.athleteId==sid).sort((a,b)=>a.load-b.load);
+    document.getElementById('lvpt').textContent=pts.length;
+    const tt=document.getElementById('lv-t');
+    if(tt)tt.innerHTML=tblClickable(['Data','Eserc.','Kg','m/s','Zona'],pts.map(p=>({cells:[p.date,p.exercise,p.load,p.velocity,p.zone],onclick:`viewLvpPointDetail('${p.id}')`})),'Nessun punto. Aggiungine uno qui sopra.');
+    const chartEl=document.getElementById('lv-chart');
+    if(chartEl)chartEl.innerHTML=renderLvpChart(pts);
+    if(pts.length>=2){
+      const n=pts.length,sX=pts.reduce((s,p)=>s+p.load,0),sY=pts.reduce((s,p)=>s+p.velocity,0),sXY=pts.reduce((s,p)=>s+p.load*p.velocity,0),sX2=pts.reduce((s,p)=>s+p.load*p.load,0);
+      const M=(n*sXY-sX*sY)/(n*sX2-sX*sX),B=(sY-M*sX)/n;
+      const yM=sY/n,ssR=pts.reduce((s,p)=>s+Math.pow(p.velocity-(M*p.load+B),2),0),ssT=pts.reduce((s,p)=>s+Math.pow(p.velocity-yM,2),0);
+      const r2=ssT>0?1-ssR/ssT:0;
+      document.getElementById('lv1').textContent=M!==0?Math.round(-B/M):'—';
+      document.getElementById('lvmp').textContent=M!==0?Math.round(-B/(2*M)):'—';
+      document.getElementById('lvr2').textContent=r2.toFixed(3);
+      const ec=document.getElementById('lveq');if(ec)ec.style.display='';
+      const eq=document.getElementById('lveqt');if(eq)eq.textContent=`v = ${M.toFixed(5)} × load + ${B.toFixed(4)} | R² = ${r2.toFixed(3)}`;
+    } else {
+      const ec=document.getElementById('lveq');if(ec)ec.style.display='none';
+      document.getElementById('lv1').textContent='—';
+      document.getElementById('lvmp').textContent='—';
+      document.getElementById('lvr2').textContent='—';
+    }
+  };
+  document.getElementById('lvv')?.addEventListener('input',upZ);
+  document.getElementById('lva')?.addEventListener('change',upP);
+  upZ();upP();
   buildExSel('lvex','Squat Back (High Bar)');
+  switchLvpTab('trad');
 };
-function saveLVP(){const g=id=>document.getElementById(id)?.value;const v=+g('lvv')||0;const zone=v>1.3?'Starting Str.':v>1.0?'Speed Str.':v>0.75?'Strength-Speed':v>0.5?'Accel. Str.':'Abs. Strength';const aid=g('lva');S.lvp.push({id:rid(),athleteId:aid,athleteName:athName(aid),date:g('lvd'),exercise:g('lvex'),load:+g('lvl'),velocity:v,zone});save();render('lvp');}
+
+function renderLvpChart(pts){
+  if(pts.length<1)return '<p style="font-size:12px;color:var(--tx2)">Aggiungi punti per vedere il grafico.</p>';
+  const W=320,H=200,pad=36;
+  const maxLoad=Math.max(...pts.map(p=>p.load))*1.15||100;
+  const maxV=Math.max(...pts.map(p=>p.velocity))*1.15||2;
+  const xScale=l=>pad+(l/maxLoad)*(W-pad*1.5);
+  const yScale=v=>H-pad-(v/maxV)*(H-pad*1.5);
+  let svg=`<svg viewBox="0 0 ${W} ${H}" style="width:100%;max-width:380px;height:auto">`;
+  svg+=`<line x1="${pad}" y1="${H-pad}" x2="${W-10}" y2="${H-pad}" stroke="var(--bd2)" stroke-width="1"/>`;
+  svg+=`<line x1="${pad}" y1="${H-pad}" x2="${pad}" y2="10" stroke="var(--bd2)" stroke-width="1"/>`;
+  svg+=`<text x="${W/2}" y="${H-6}" font-size="9" fill="var(--tx2)" text-anchor="middle">Carico (kg)</text>`;
+  svg+=`<text x="10" y="10" font-size="9" fill="var(--tx2)">m/s</text>`;
+  if(pts.length>=2){
+    const n=pts.length,sX=pts.reduce((s,p)=>s+p.load,0),sY=pts.reduce((s,p)=>s+p.velocity,0),sXY=pts.reduce((s,p)=>s+p.load*p.velocity,0),sX2=pts.reduce((s,p)=>s+p.load*p.load,0);
+    const M=(n*sXY-sX*sY)/(n*sX2-sX*sX),B=(sY-M*sX)/n;
+    const x1=0,x2=maxLoad,y1=M*x1+B,y2=M*x2+B;
+    svg+=`<line x1="${xScale(x1)}" y1="${yScale(Math.max(0,y1))}" x2="${xScale(x2)}" y2="${yScale(Math.max(0,y2))}" stroke="var(--pu)" stroke-width="2" stroke-dasharray="4,3" opacity="0.6"/>`;
+  }
+  pts.forEach(p=>{
+    svg+=`<circle cx="${xScale(p.load)}" cy="${yScale(p.velocity)}" r="4" fill="var(--pu)" stroke="#fff" stroke-width="1"/>`;
+  });
+  svg+='</svg>';
+  return svg;
+}
+
+function saveLVP(){
+  const g=id=>document.getElementById(id)?.value;
+  const v=+g('lvv')||0;
+  const zone=v>1.3?'Starting Str.':v>1.0?'Speed Str.':v>0.75?'Strength-Speed':v>0.5?'Accel. Str.':'Abs. Strength';
+  const aid=g('lva');
+  S.lvp.push({id:rid(),athleteId:aid,athleteName:athName(aid),date:g('lvd'),exercise:g('lvex'),load:+g('lvl'),velocity:v,zone});
+  save();render('lvp');
+  setTimeout(()=>switchLvpTab('trad'),20);
+}
+
+function viewLvpPointDetail(pointId){
+  const p = S.lvp.find(x=>x.id===pointId);
+  if(!p){alert('Punto non trovato');return;}
+  const body = `
+    <div class="grid2" style="gap:10px">
+      <div><div style="font-size:11px;color:var(--tx2)">Atleta</div><div style="font-weight:700">${esc(p.athleteName)}</div></div>
+      <div><div style="font-size:11px;color:var(--tx2)">Data</div><div style="font-weight:700">${p.date}</div></div>
+      <div><div style="font-size:11px;color:var(--tx2)">Esercizio</div><div style="font-weight:700">${esc(p.exercise)}</div></div>
+      <div><div style="font-size:11px;color:var(--tx2)">Zona</div><div style="font-weight:700;color:var(--pu)">${p.zone}</div></div>
+      <div><div style="font-size:11px;color:var(--tx2)">Carico</div><div style="font-weight:700">${p.load} kg</div></div>
+      <div><div style="font-size:11px;color:var(--tx2)">Velocità</div><div style="font-weight:700">${p.velocity} m/s</div></div>
+    </div>
+  `;
+  const footer = `
+    <button class="primary" onclick="editLvpPoint('${pointId}')" style="flex:1">✏️ Modifica</button>
+    <button class="secondary" style="color:var(--erT)" onclick="deleteLvpPoint('${pointId}')">🗑️ Elimina</button>
+  `;
+  openMosyModal('Punto LVP', body, footer);
+}
+
+function editLvpPoint(pointId){
+  const p = S.lvp.find(x=>x.id===pointId);
+  if(!p)return;
+  const athOpts = S.athletes.map(a=>`<option value="${a.id}" ${a.id===p.athleteId?'selected':''}>${esc(a.name)} ${esc(a.surname)}</option>`).join('');
+  const body = `
+    <div class="grid2" style="gap:10px">
+      <div><label>Atleta</label><select id="edit-lvp-ath">${athOpts}</select></div>
+      <div><label>Data</label><input id="edit-lvp-date" type="date" value="${p.date}"></div>
+      <div><label>Esercizio</label><input id="edit-lvp-ex" type="text" value="${esc(p.exercise)}"></div>
+      <div><label>Carico (kg)</label><input id="edit-lvp-load" type="number" value="${p.load}" min="1" max="500"></div>
+      <div><label>Velocità (m/s)</label><input id="edit-lvp-vel" type="number" value="${p.velocity}" min="0.01" max="3" step="0.01"></div>
+    </div>
+  `;
+  const footer = `
+    <button class="primary" onclick="saveEditedLvpPoint('${pointId}')" style="flex:1">💾 Salva modifiche</button>
+    <button class="secondary" onclick="viewLvpPointDetail('${pointId}')">← Torna al dettaglio</button>
+  `;
+  openMosyModal('Modifica punto LVP', body, footer);
+}
+
+function saveEditedLvpPoint(pointId){
+  const p = S.lvp.find(x=>x.id===pointId);
+  if(!p)return;
+  const aid = document.getElementById('edit-lvp-ath')?.value;
+  const v = +document.getElementById('edit-lvp-vel')?.value||0;
+  p.athleteId = aid;
+  p.athleteName = athName(aid);
+  p.date = document.getElementById('edit-lvp-date')?.value;
+  p.exercise = document.getElementById('edit-lvp-ex')?.value;
+  p.load = +document.getElementById('edit-lvp-load')?.value||0;
+  p.velocity = v;
+  p.zone = v>1.3?'Starting Str.':v>1.0?'Speed Str.':v>0.75?'Strength-Speed':v>0.5?'Accel. Str.':'Abs. Strength';
+  save();
+  closeMosyModal();
+  render('lvp');
+  setTimeout(()=>switchLvpTab('trad'),20);
+}
+
+function deleteLvpPoint(pointId){
+  if(!confirm('Eliminare questo punto del profilo?'))return;
+  S.lvp = S.lvp.filter(x=>x.id!==pointId);
+  save();
+  closeMosyModal();
+  render('lvp');
+  setTimeout(()=>switchLvpTab('trad'),20);
+}
+
+function calcJumpProfile(){
+  const g = id=>+document.getElementById(id)?.value||0;
+  const mass = g('jmp-mass');
+  const hPO = g('jmp-hpo');
+  const sjH = g('jmp-sj-h')/100;
+  const cmjH = g('jmp-cmj-h')/100;
+  const sj2Load = g('jmp-sj2-load');
+  const sj2H = g('jmp-sj2-h')/100;
+
+  if(mass<=0||hPO<=0||sjH<=0||cmjH<=0){alert('Inserisci massa, push-off distance, altezza SJ e CMJ validi');return;}
+
+  // Bosco Index
+  const sjCm = sjH*100, cmjCm = cmjH*100;
+  const bosco = ((cmjCm-sjCm)/sjCm)*100;
+  const boscoLabel = bosco<33?'Lavoro strutturale necessario':bosco>33?'Buone caratteristiche neuromuscolari':'Valore ottimale';
+  const boscoType = bosco<33?'wa':'ok';
+
+  document.getElementById('bosco-result').innerHTML = `
+    <div class="grid2" style="gap:10px;margin-bottom:10px">
+      <div class="metric-card"><div class="metric-label">SJ Height</div><div class="metric-value">${sjCm.toFixed(1)} cm</div></div>
+      <div class="metric-card"><div class="metric-label">CMJ Height</div><div class="metric-value">${cmjCm.toFixed(1)} cm</div></div>
+    </div>
+    <div style="text-align:center;padding:14px;background:var(--bg2);border-radius:8px">
+      <div style="font-size:11px;color:var(--tx2)">Bosco Index</div>
+      <div style="font-size:32px;font-weight:700;color:${bosco<33?'var(--waT)':'var(--okT)'}">${bosco.toFixed(1)}%</div>
+      <div style="margin-top:6px">${bdg(boscoLabel,boscoType)}</div>
+    </div>
+  `;
+
+  // Samozino F-V Profile (metodo a 2 punti, García-Ramos validato)
+  function jumpToPoint(totalMass, jumpH, hPOdist){
+    const grav = 9.81;
+    const vTakeoff = Math.sqrt(2*grav*jumpH);
+    const Fmean = totalMass * ( grav + (Math.pow(vTakeoff,2)/(2*hPOdist)) );
+    const Vmean = vTakeoff/2;
+    return {F:Fmean, V:Vmean};
+  }
+
+  let samozinoData = null;
+  if(sj2Load>0 && sj2H>0){
+    const p1 = jumpToPoint(mass, sjH, hPO);
+    const p2 = jumpToPoint(mass+sj2Load, sj2H, hPO);
+    if(Math.abs(p2.V-p1.V)>0.01){
+      const k = (p1.F-p2.F)/(p2.V-p1.V);
+      const F0 = p1.F + k*p1.V;
+      const V0 = F0/k;
+      const Pmax = (F0*V0)/4;
+      samozinoData = {F0, V0, Pmax, F0PerKg:F0/mass, PmaxPerKg:Pmax/mass, k, p1, p2};
+    }
+  }
+
+  if(samozinoData){
+    document.getElementById('samozino-result-card').style.display='';
+    document.getElementById('samozino-chart-card').style.display='';
+    document.getElementById('samozino-result').innerHTML = `
+      <div class="grid2" style="gap:8px;margin-bottom:10px">
+        ${mC('F0','<span>'+samozinoData.F0PerKg.toFixed(2)+'</span>','N/kg','var(--pu)')}
+        ${mC('V0','<span>'+samozinoData.V0.toFixed(2)+'</span>','m/s')}
+        ${mC('Pmax','<span>'+samozinoData.PmaxPerKg.toFixed(2)+'</span>','W/kg','#059669')}
+        ${mC('SFV (pendenza)','<span>'+(-samozinoData.k).toFixed(1)+'</span>','N/(m/s)/kg')}
+      </div>
+      <p style="font-size:11px;color:var(--tx2);line-height:1.6">Profilo calcolato col metodo a 2 punti (corpo libero + carico ${sj2Load}kg), validato da García-Ramos et al. e Samozino et al. (2008, 2012). F0=forza teorica massima a v=0, V0=velocità teorica massima a F=0, Pmax=F0×V0/4.</p>
+    `;
+    document.getElementById('samozino-chart').innerHTML = renderSamozinoChart(samozinoData, mass);
+  } else {
+    document.getElementById('samozino-result-card').style.display='none';
+    document.getElementById('samozino-chart-card').style.display='none';
+  }
+
+  window._lastJumpTest = {mass, hPO, sjHeight:sjCm, cmjHeight:cmjCm, bosco, samozino:samozinoData};
+
+  const saveBtn = document.getElementById('jmp-save-btn');
+  if(!saveBtn){
+    const card = document.getElementById('bosco-result').parentElement;
+    const btn = document.createElement('button');
+    btn.id='jmp-save-btn';
+    btn.className='primary';
+    btn.style.width='100%';
+    btn.style.marginTop='10px';
+    btn.textContent='💾 Salva test';
+    btn.onclick=saveJumpTest;
+    card.appendChild(btn);
+  }
+}
+
+function renderSamozinoChart(data, mass){
+  const W=320,H=220,pad=40;
+  const maxV = Math.max(data.V0, 5)*1.1;
+  const maxF = Math.max(data.F0PerKg, 30)*1.1;
+  const xScale = v=>pad+(v/maxV)*(W-pad-15);
+  const yScale = f=>H-pad-(f/maxF)*(H-pad-15);
+
+  // Profilo ottimale teorico: per semplicità didattica, mostriamo una retta con stesso Pmax ma SFV=valore medio popolazione atleti sport di squadra (~ -formula empirica)
+  // Nota: il vero "profilo ottimale" di Samozino richiede dati biomeccanici aggiuntivi (altezza salto target, hPO) - qui mostriamo
+  // un riferimento a slope neutro (45°-equivalente in scala) per permettere confronto visivo qualitativo
+  const F0_opt = data.F0PerKg;
+  const V0_opt = data.PmaxPerKg*4/F0_opt; // mantiene stesso Pmax con SFV ottimale teorico (slope=-F0/V0 bilanciato)
+
+  let svg = `<svg viewBox="0 0 ${W} ${H}" style="width:100%;max-width:380px;height:auto">`;
+  svg += `<line x1="${pad}" y1="${H-pad}" x2="${W-10}" y2="${H-pad}" stroke="var(--bd2)" stroke-width="1"/>`;
+  svg += `<line x1="${pad}" y1="${H-pad}" x2="${pad}" y2="10" stroke="var(--bd2)" stroke-width="1"/>`;
+  svg += `<text x="${W/2}" y="${H-8}" font-size="9" fill="var(--tx2)" text-anchor="middle">Velocità (m/s)</text>`;
+  svg += `<text x="8" y="12" font-size="9" fill="var(--tx2)">F (N/kg)</text>`;
+
+  // Retta reale (rossa)
+  svg += `<line x1="${xScale(0)}" y1="${yScale(data.F0PerKg)}" x2="${xScale(data.V0)}" y2="${yScale(0)}" stroke="#e31e24" stroke-width="2.5"/>`;
+  // Retta ottimale (verde, tratteggiata) - stesso Pmax, profilo bilanciato
+  svg += `<line x1="${xScale(0)}" y1="${yScale(F0_opt)}" x2="${xScale(V0_opt)}" y2="${yScale(0)}" stroke="#059669" stroke-width="2" stroke-dasharray="5,4" opacity="0.7"/>`;
+
+  svg += `<circle cx="${xScale(0)}" cy="${yScale(data.F0PerKg)}" r="4" fill="#e31e24"/>`;
+  svg += `<circle cx="${xScale(data.V0)}" cy="${yScale(0)}" r="4" fill="#e31e24"/>`;
+
+  svg += `<rect x="${W-130}" y="10" width="10" height="10" fill="#e31e24"/><text x="${W-115}" y="19" font-size="9" fill="var(--tx2)">Profilo reale</text>`;
+  svg += `<rect x="${W-130}" y="25" width="10" height="10" fill="#059669"/><text x="${W-115}" y="34" font-size="9" fill="var(--tx2)">Profilo ottimale*</text>`;
+  svg += '</svg>';
+  svg += '<p style="font-size:9px;color:var(--tx3);margin-top:4px">*Stima di riferimento a pari Pmax con bilanciamento F-V neutro. Per profilo ottimale individuale esatto è richiesta l\'altezza target del salto (Samozino et al. 2012).</p>';
+  return svg;
+}
+
+function saveJumpTest(){
+  if(!window._lastJumpTest){alert('Calcola prima il profilo');return;}
+  const aid = document.getElementById('jmp-ath')?.value;
+  const date = document.getElementById('jmp-date')?.value||today();
+  const d = window._lastJumpTest;
+  if(!S.jumpTests)S.jumpTests=[];
+  S.jumpTests.push({
+    id:rid(), athleteId:aid, athleteName:athName(aid), date,
+    mass:d.mass, hPO:d.hPO, sjHeight:d.sjHeight, cmjHeight:d.cmjHeight, bosco:d.bosco,
+    F0:d.samozino?.F0||null, V0:d.samozino?.V0||null, Pmax:d.samozino?.Pmax||null,
+    F0PerKg:d.samozino?.F0PerKg||null, PmaxPerKg:d.samozino?.PmaxPerKg||null,
+  });
+  save();
+  alert('✅ Test salvato!');
+  render('lvp');
+  setTimeout(()=>switchLvpTab('jump'),20);
+}
+
+function viewJumpTestDetail(testId){
+  const j = (S.jumpTests||[]).find(x=>x.id===testId);
+  if(!j){alert('Test non trovato');return;}
+  const body = `
+    <div class="grid2" style="gap:10px;margin-bottom:14px">
+      <div><div style="font-size:11px;color:var(--tx2)">Atleta</div><div style="font-weight:700">${esc(j.athleteName)}</div></div>
+      <div><div style="font-size:11px;color:var(--tx2)">Data</div><div style="font-weight:700">${j.date}</div></div>
+      <div><div style="font-size:11px;color:var(--tx2)">SJ Height</div><div style="font-weight:700">${j.sjHeight?.toFixed(1)} cm</div></div>
+      <div><div style="font-size:11px;color:var(--tx2)">CMJ Height</div><div style="font-weight:700">${j.cmjHeight?.toFixed(1)} cm</div></div>
+      <div><div style="font-size:11px;color:var(--tx2)">Bosco Index</div><div style="font-weight:700">${j.bosco?.toFixed(1)}%</div></div>
+      <div><div style="font-size:11px;color:var(--tx2)">Peso corporeo</div><div style="font-weight:700">${j.mass} kg</div></div>
+    </div>
+    ${j.F0PerKg?`<div style="padding:12px;background:var(--bg2);border-radius:8px">
+      <div style="font-weight:700;font-size:12px;margin-bottom:8px;text-transform:uppercase">Profilo Samozino</div>
+      <div class="grid2" style="gap:8px">
+        ${mC('F0','<span>'+j.F0PerKg.toFixed(2)+'</span>','N/kg')}
+        ${mC('V0','<span>'+j.V0.toFixed(2)+'</span>','m/s')}
+        ${mC('Pmax','<span>'+j.PmaxPerKg.toFixed(2)+'</span>','W/kg')}
+      </div>
+    </div>`:'<p style="font-size:12px;color:var(--tx2)">Profilo Samozino non disponibile per questo test (manca il secondo punto caricato).</p>'}
+  `;
+  const footer = `<button class="secondary" style="color:var(--erT)" onclick="deleteJumpTest('${testId}')">🗑️ Elimina test</button>`;
+  openMosyModal('Test SJ/CMJ', body, footer);
+}
+
+function deleteJumpTest(testId){
+  if(!confirm('Eliminare questo test?'))return;
+  S.jumpTests = (S.jumpTests||[]).filter(x=>x.id!==testId);
+  save();
+  closeMosyModal();
+  render('lvp');
+  setTimeout(()=>switchLvpTab('jump'),20);
+}
+
 
 // ══ GPS ══
-R.gps=()=>sH('GPS Data','Distanza · HSR · Sprint · Acc/Dec · PlayerMaker Kicking Power')+
+R.gps=()=>sH('GPS Data','Distanza · Zone di velocità · Accelerazioni/Decelerazioni · Kicking Power')+
 `<div class="grid2"><div class="card">
 <div class="grid2" style="gap:10px">${asel('ga')}${inp('gd','Data','date',today())}</div>
 ${sel('gt','Tipo',['Partita','Pratica','Aerobico','S&C','Power End','Recovery'].map(v=>({v,l:v})),'Pratica')}
 <div class="grid2" style="gap:10px">${inp('gdur','Durata (min)','number',90,'min=1 max=300')}${inp('gdist','Distanza totale (m)','number',9500,'min=0')}
-${inp('gvmax','Vel. max (km/h)','number',28.5,'min=0 max=45 step=0.1')}${inp('gspr','N° sprint','number',12,'min=0')}
-${inp('ghsr','Dist. alta vel. (m)','number',1200,'min=0')}${inp('gspd','Sprint distance (m)','number',280,'min=0')}
-${inp('gacc','Accel. (m)','number',650,'min=0')}${inp('gdec','Decel. (m)','number',620,'min=0')}</div>
-<div style="font-size:12px;font-weight:500;color:var(--tx2);margin:4px 0">PlayerMaker data</div>
+${inp('gvmax','Vel. max (km/h)','number',28.5,'min=0 max=45 step=0.1')}${inp('gspr','N° sprint','number',12,'min=0')}</div>
+<div style="font-size:12px;font-weight:600;color:var(--tx2);margin:10px 0 6px;text-transform:uppercase">Accelerazioni / Decelerazioni</div>
+<div class="grid2" style="gap:10px">${inp('gacc','N° accelerazioni','number',24,'min=0')}${inp('gdec','N° decelerazioni','number',22,'min=0')}</div>
+<div style="font-size:12px;font-weight:600;color:var(--tx2);margin:10px 0 6px;text-transform:uppercase">Distanza per zone di velocità</div>
+<div style="font-size:11px;color:var(--tx2);margin-bottom:8px">Inserisci i metri percorsi in ciascuna fascia di velocità</div>
+${inp('gz5','>25 km/h — Sprint (m)','number',280,'min=0')}
+${inp('gz4','20-25 km/h — Alta velocità (m)','number',650,'min=0')}
+${inp('gz3','15-20 km/h — Media velocità (m)','number',1400,'min=0')}
+${inp('gz2','6-15 km/h — Corsa lenta (m)','number',3800,'min=0')}
+${inp('gz1','0-6 km/h — Camminata (m)','number',3370,'min=0')}
+<div id="gz-total-check" style="font-size:11px;margin:6px 0 10px;padding:8px;background:var(--bg2);border-radius:6px"></div>
+<div style="font-size:12px;font-weight:600;color:var(--tx2);margin:10px 0 6px;text-transform:uppercase">Kicking &amp; Touches</div>
 <div class="grid2" style="gap:10px">${inp('gkl','Kicking sx (kph)','number',0,'min=0 step=0.1')}${inp('gkr','Kicking dx (kph)','number',0,'min=0 step=0.1')}
 ${inp('gtl','Tocchi sx','number',0,'min=0')}${inp('gtr','Tocchi dx','number',0,'min=0')}
 ${inp('gbd','Dist. con palla (m)','number',0,'min=0')}</div>
-<button class="primary" onclick="saveGPS()">💾 Salva GPS</button></div>
-<div><div class="grid2" style="margin-bottom:12px;gap:8px">${mC('Dist./min','<span id="gdpm">—</span>','m/min','var(--pu)')}${mC('% HSR','<span id="gphsr">—</span>','%')}${mC('% Sprint','<span id="gpspr">—</span>','%')}${mC('Sessioni GPS',S.gps.length)}</div>
-<div class="card"><div style="font-weight:500;font-size:13px;margin-bottom:8px">Ultime sessioni GPS</div>
-${tbl(['Data','Tipo','Dist','Vmax','Sprint'],S.gps.slice().reverse().slice(0,8).map(g=>[g.date,g.type,g.dist+'m',g.vmax+'km/h',g.sprints]),'Nessun dato GPS')}</div></div></div>`;
-INI.gps=()=>{const up=()=>{const d=+document.getElementById('gdist')?.value||0,dur=+document.getElementById('gdur')?.value||1,hsr=+document.getElementById('ghsr')?.value||0,spd=+document.getElementById('gspd')?.value||0;const e1=document.getElementById('gdpm');if(e1)e1.textContent=Math.round(d/dur);const e2=document.getElementById('gphsr');if(e2)e2.textContent=d>0?(hsr/d*100).toFixed(1):'—';const e3=document.getElementById('gpspr');if(e3)e3.textContent=d>0?(spd/d*100).toFixed(1):'—';};['gdist','gdur','ghsr','gspd'].forEach(id=>document.getElementById(id)?.addEventListener('input',up));up();};
-function saveGPS(){const g=id=>document.getElementById(id)?.value;const aid=g('ga');S.gps.push({id:rid(),athleteId:aid,athleteName:athName(aid),date:g('gd'),type:g('gt'),duration:+g('gdur'),dist:+g('gdist'),vmax:+g('gvmax'),sprints:+g('gspr'),hsr:+g('ghsr'),sprintDist:+g('gspd'),acc:+g('gacc'),dec:+g('gdec'),kickL:+g('gkl'),kickR:+g('gkr'),touchL:+g('gtl'),touchR:+g('gtr'),ballDist:+g('gbd')});save();render('gps');}
+<button class="primary" onclick="saveGPS()" style="width:100%">💾 Salva GPS</button></div>
+<div>
+<div class="grid2" style="margin-bottom:12px;gap:8px">${mC('Dist./min','<span id="gdpm">—</span>','m/min','var(--pu)')}${mC('% HSR (&gt;20km/h)','<span id="gphsr">—</span>','%')}${mC('% Sprint','<span id="gpspr">—</span>','%')}${mC('Acc+Dec tot.','<span id="gaccdec">—</span>','')}</div>
+<div class="card" style="margin-bottom:12px">
+  <div style="font-weight:500;font-size:13px;margin-bottom:8px">Distribuzione zone velocità</div>
+  <div id="gps-zones-bar"></div>
+</div>
+<div class="card"><div style="font-weight:500;font-size:13px;margin-bottom:8px">Ultime sessioni GPS <span style="font-size:11px;color:var(--tx2);font-weight:400">(clicca per dettagli)</span></div>
+${tblClickable(['Data','Tipo','Dist','Vmax','Acc/Dec'],S.gps.slice().reverse().slice(0,8).map(g=>({cells:[g.date,g.type,g.dist+'m',g.vmax+'km/h',`${g.acc||0}/${g.dec||0}`],onclick:`viewGpsDetail('${g.id}')`})),'Nessun dato GPS')}</div></div></div>`;
+INI.gps=()=>{
+  const up=()=>{
+    const d=+document.getElementById('gdist')?.value||0,dur=+document.getElementById('gdur')?.value||1;
+    const z1=+document.getElementById('gz1')?.value||0,z2=+document.getElementById('gz2')?.value||0,z3=+document.getElementById('gz3')?.value||0,z4=+document.getElementById('gz4')?.value||0,z5=+document.getElementById('gz5')?.value||0;
+    const acc=+document.getElementById('gacc')?.value||0,dec=+document.getElementById('gdec')?.value||0;
+    const zoneTotal=z1+z2+z3+z4+z5;
+    const e1=document.getElementById('gdpm');if(e1)e1.textContent=Math.round(d/dur);
+    const hsr=z4+z5;
+    const e2=document.getElementById('gphsr');if(e2)e2.textContent=d>0?(hsr/d*100).toFixed(1):'—';
+    const e3=document.getElementById('gpspr');if(e3)e3.textContent=d>0?(z5/d*100).toFixed(1):'—';
+    const e4=document.getElementById('gaccdec');if(e4)e4.textContent=acc+dec;
+    const checkEl=document.getElementById('gz-total-check');
+    if(checkEl){
+      const diff=d-zoneTotal;
+      if(d>0&&Math.abs(diff)>50){
+        checkEl.innerHTML=`<span style="color:var(--erT)">⚠️ Somma zone (${zoneTotal}m) non coincide con distanza totale (${d}m) · differenza ${diff>0?'+':''}${diff}m</span>`;
+      } else if(zoneTotal>0){
+        checkEl.innerHTML=`<span style="color:var(--okT)">✓ Somma zone: ${zoneTotal}m</span>`;
+      } else {
+        checkEl.innerHTML='';
+      }
+    }
+    const barEl=document.getElementById('gps-zones-bar');
+    if(barEl){
+      const zones=[{l:'Sprint &gt;25km/h',v:z5,c:'#e31e24'},{l:'Alta vel. 20-25km/h',l2:'20-25 km/h',v:z4,c:'#f59e0b'},{l:'Media vel. 15-20km/h',v:z3,c:'#eab308'},{l:'Corsa lenta 6-15km/h',v:z2,c:'#10b981'},{l:'Camminata 0-6km/h',v:z1,c:'#6b7280'}];
+      const maxTot=zoneTotal||1;
+      barEl.innerHTML=zones.map(z=>`<div style="margin-bottom:6px"><div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:2px"><span>${z.l}</span><span style="font-weight:600">${z.v}m (${(z.v/maxTot*100).toFixed(0)}%)</span></div><div style="height:8px;background:var(--bg3);border-radius:4px overflow:hidden"><div style="height:100%;width:${(z.v/maxTot*100)}%;background:${z.c};border-radius:4px"></div></div></div>`).join('');
+    }
+  };
+  ['gdist','gdur','ghsr','gspd','gz1','gz2','gz3','gz4','gz5','gacc','gdec'].forEach(id=>document.getElementById(id)?.addEventListener('input',up));
+  up();
+};
+function saveGPS(){
+  const g=id=>document.getElementById(id)?.value;
+  const aid=g('ga');
+  S.gps.push({id:rid(),athleteId:aid,athleteName:athName(aid),date:g('gd'),type:g('gt'),duration:+g('gdur'),dist:+g('gdist'),vmax:+g('gvmax'),sprints:+g('gspr'),acc:+g('gacc'),dec:+g('gdec'),zone1Walk:+g('gz1'),zone2Slow:+g('gz2'),zone3Med:+g('gz3'),zone4High:+g('gz4'),zone5Sprint:+g('gz5'),kickL:+g('gkl'),kickR:+g('gkr'),touchL:+g('gtl'),touchR:+g('gtr'),ballDist:+g('gbd')});
+  save();render('gps');
+}
+function viewGpsDetail(gpsId){
+  const g = S.gps.find(x=>x.id===gpsId);
+  if(!g){alert('Sessione GPS non trovata');return;}
+  const zoneTotal = (g.zone1Walk||0)+(g.zone2Slow||0)+(g.zone3Med||0)+(g.zone4High||0)+(g.zone5Sprint||0);
+  const body = `
+    <div class="grid2" style="gap:10px;margin-bottom:14px">
+      <div><div style="font-size:11px;color:var(--tx2)">Atleta</div><div style="font-weight:700">${esc(g.athleteName)}</div></div>
+      <div><div style="font-size:11px;color:var(--tx2)">Data</div><div style="font-weight:700">${g.date}</div></div>
+      <div><div style="font-size:11px;color:var(--tx2)">Tipo</div><div style="font-weight:700">${esc(g.type)}</div></div>
+      <div><div style="font-size:11px;color:var(--tx2)">Durata</div><div style="font-weight:700">${g.duration} min</div></div>
+      <div><div style="font-size:11px;color:var(--tx2)">Distanza totale</div><div style="font-weight:700">${g.dist} m</div></div>
+      <div><div style="font-size:11px;color:var(--tx2)">Vel. max</div><div style="font-weight:700">${g.vmax} km/h</div></div>
+      <div><div style="font-size:11px;color:var(--tx2)">N° Sprint</div><div style="font-weight:700">${g.sprints||0}</div></div>
+      <div><div style="font-size:11px;color:var(--tx2)">Acc / Dec</div><div style="font-weight:700">${g.acc||0} / ${g.dec||0}</div></div>
+    </div>
+    <div style="font-weight:700;font-size:13px;margin-bottom:8px;text-transform:uppercase">Zone di velocità</div>
+    ${tbl(['Zona','Distanza','% sul totale'],[
+      ['Sprint &gt;25km/h', (g.zone5Sprint||0)+'m', zoneTotal>0?((g.zone5Sprint||0)/zoneTotal*100).toFixed(0)+'%':'—'],
+      ['Alta vel. 20-25km/h', (g.zone4High||0)+'m', zoneTotal>0?((g.zone4High||0)/zoneTotal*100).toFixed(0)+'%':'—'],
+      ['Media vel. 15-20km/h', (g.zone3Med||0)+'m', zoneTotal>0?((g.zone3Med||0)/zoneTotal*100).toFixed(0)+'%':'—'],
+      ['Corsa lenta 6-15km/h', (g.zone2Slow||0)+'m', zoneTotal>0?((g.zone2Slow||0)/zoneTotal*100).toFixed(0)+'%':'—'],
+      ['Camminata 0-6km/h', (g.zone1Walk||0)+'m', zoneTotal>0?((g.zone1Walk||0)/zoneTotal*100).toFixed(0)+'%':'—'],
+    ])}
+    ${(g.kickL||g.kickR||g.touchL||g.touchR)?`<div style="margin-top:14px;font-weight:700;font-size:13px;margin-bottom:8px;text-transform:uppercase">Kicking &amp; Touches</div>
+    ${tbl(['Metrica','Sx','Dx'],[['Kicking power (kph)',g.kickL||'—',g.kickR||'—'],['Tocchi',g.touchL||'—',g.touchR||'—']])}`:''}
+  `;
+  const footer = `<button class="secondary" style="color:var(--erT)" onclick="deleteGpsSession('${gpsId}')">🗑️ Elimina sessione</button>`;
+  openMosyModal(`GPS — ${g.date}`, body, footer);
+}
+function deleteGpsSession(gpsId){
+  if(!confirm('Eliminare questa sessione GPS?'))return;
+  S.gps = S.gps.filter(x=>x.id!==gpsId);
+  save();
+  closeMosyModal();
+  render('gps');
+}
+
 
 // ══ TRIMP ══
 R.trimp=()=>{const zn=[{k:'z1',k2:1,l:'Zona 1',p:'< 60% FCmax'},{k:'z2',k2:2,l:'Zona 2',p:'60–70%'},{k:'z3',k2:3,l:'Zona 3',p:'70–80%'},{k:'z4',k2:4,l:'Zona 4',p:'80–90%'},{k:'z5',k2:5,l:'Zona 5',p:'> 90%'}];
@@ -1503,18 +2343,216 @@ INI.inol=()=>{const up=()=>{const s=+document.getElementById('iset')?.value||0,r
 function saveINOL(){const g=id=>document.getElementById(id)?.value;const aid=g('ia2'),s=+g('iset')||0,r=+g('irep')||0,l=+g('iload')||0;const inol=l>0&&l<100?(s*r)/(100-l):0;S.inol.push({id:rid(),athleteId:aid,athleteName:athName(aid),date:g('id3'),exercise:g('iex'),oneRM:+g('i1rm'),sets:s,reps:r,load:l,inol});save();render('inol');}
 
 // ══ WEEKLY PLAN ══
-R.weekly=()=>{const days=['Lunedì','Martedì','Mercoledì','Giovedì','Venerdì','Sabato','Domenica'];const types=['Pratica','Game','Aerobico','Forza','Rifinitura','Recovery','Off'];const cols={Game:'#fecaca',Pratica:'#dbeafe',Aerobico:'#d1fae5',Forza:'#ede9fe',Rifinitura:'#fef9c3',Recovery:'#cffafe'};
-return sH('Weekly Plan','Pianificazione settimanale · Volume · Intensità · Carico previsto')+
-`<div class="card" style="margin-bottom:14px"><div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;margin-bottom:14px"><div>${inp('wpd','Settimana dal','date',today())}</div>${mC('Carico previsto','<span id="wpl">0</span>','sRPE')}${mC('Sessioni','<span id="wps">0</span>','')}</div>
-<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:5px">
-${days.map((d,i)=>`<div id="wpday-${i}" style="background:var(--bg2);border-radius:8px;padding:7px 5px;border:.5px solid var(--bd)"><div style="font-size:11px;font-weight:500;margin-bottom:4px">${d}</div><select id="wpt-${i}" style="font-size:10px;margin-bottom:3px;padding:2px" onchange="updWDay(${i})">${types.map(t=>`<option>${t}</option>`).join('')}</select><div id="wpf-${i}"><input id="wpdu-${i}" type="number" value="75" min="0" max="300" placeholder="min" style="font-size:10px;margin-bottom:3px" oninput="calcWLoad()"><input id="wprpe-${i}" type="number" value="6" min="0" max="10" placeholder="RPE" style="font-size:10px" oninput="calcWLoad()"><div style="font-size:10px;color:var(--pu);font-weight:500;margin-top:2px" id="wpsrpe-${i}">450 sRPE</div></div></div>`).join('')}
-</div><button class="primary" onclick="saveWeekly()" style="margin-top:12px">💾 Salva settimana</button></div>
-<div class="card"><div style="font-weight:500;font-size:13px;margin-bottom:8px">Settimane salvate</div>
-${tbl(['Settimana dal','Carico tot.','Sessioni'],S.weekly.slice().reverse().slice(0,12).map(w=>[w.date,w.load+' sRPE',w.sessions]),'Nessuna settimana salvata')}</div>`;};
-INI.weekly=()=>{for(let i=0;i<7;i++)updWDay(i);calcWLoad();};
-function updWDay(i){const t=document.getElementById(`wpt-${i}`)?.value;const cols={Game:'#fecaca',Pratica:'#dbeafe',Aerobico:'#d1fae5',Forza:'#ede9fe',Rifinitura:'#fef9c3',Recovery:'#cffafe'};const dw=document.getElementById(`wpday-${i}`);if(dw)dw.style.background=cols[t]||'var(--bg2)';const ff=document.getElementById(`wpf-${i}`);if(ff)ff.style.display=t==='Off'?'none':'';calcWLoad();}
-function calcWLoad(){let tot=0,sess=0;for(let i=0;i<7;i++){const t=document.getElementById(`wpt-${i}`)?.value;if(t&&t!=='Off'){const d=+document.getElementById(`wpdu-${i}`)?.value||0,r=+document.getElementById(`wprpe-${i}`)?.value||0;tot+=d*r;sess++;const ss=document.getElementById(`wpsrpe-${i}`);if(ss)ss.textContent=d*r+' sRPE';}}const le=document.getElementById('wpl');if(le)le.textContent=tot;const se=document.getElementById('wps');if(se)se.textContent=sess;}
-function saveWeekly(){const d=document.getElementById('wpd')?.value;let tot=0,sess=0;for(let i=0;i<7;i++){const t=document.getElementById(`wpt-${i}`)?.value;if(t&&t!=='Off'){const du=+document.getElementById(`wpdu-${i}`)?.value||0,r=+document.getElementById(`wprpe-${i}`)?.value||0;tot+=du*r;sess++;}}S.weekly.push({id:rid(),date:d,load:tot,sessions:sess});save();alert('✅ Settimana salvata!');render('weekly');}
+R.weekly=()=>{
+  const days=['Lunedì','Martedì','Mercoledì','Giovedì','Venerdì','Sabato','Domenica'];
+  const workTypes=['Tecnico-Tattico','Potenza','Forza','Aerobico','Warm-up','Rifinitura','Recovery','Partita','Altro'];
+  const typeColors={'Tecnico-Tattico':'#3b82f6','Potenza':'#e31e24','Forza':'#7c3aed','Aerobico':'#10b981','Warm-up':'#f59e0b','Rifinitura':'#eab308','Recovery':'#06b6d4','Partita':'#dc2626','Altro':'#6b7280'};
+  window._weekPlan = window._weekPlan || days.map(()=>[]);
+  return sH('Weekly Plan','Pianificazione settimanale · Volume per tipo di lavoro · Intensità RPE')+
+  `<div class="card" style="margin-bottom:14px">
+    <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;margin-bottom:14px">
+      <div>${inp('wpd','Settimana dal','date',today())}</div>
+      ${mC('Carico settimanale','<span id="wpl">0</span>','sRPE')}
+      ${mC('Sessioni totali','<span id="wps">0</span>','')}
+      ${mC('Minuti totali','<span id="wpmin">0</span>','min')}
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px">
+      ${days.map((d,i)=>`<div style="background:var(--bg2);border-radius:8px;padding:8px 6px;border:.5px solid var(--bd);min-height:140px">
+        <div style="font-size:11px;font-weight:700;margin-bottom:6px;text-align:center">${d}</div>
+        <div id="wday-blocks-${i}" style="margin-bottom:6px"></div>
+        <button class="secondary" style="font-size:9px;padding:4px 6px;width:100%" onclick="addWeekWorkBlock(${i})">➕ Lavoro</button>
+        <div id="wday-summary-${i}" style="font-size:9px;color:var(--pu);font-weight:600;margin-top:5px;text-align:center"></div>
+      </div>`).join('')}
+    </div>
+    <button class="primary" onclick="saveWeekly()" style="margin-top:14px;width:100%">💾 Salva settimana</button>
+  </div>
+
+  <div class="card" style="margin-bottom:14px">
+    <div style="font-weight:700;font-size:13px;margin-bottom:10px;text-transform:uppercase">Grafico Volume (colonne impilate) e Intensità (linea RPE)</div>
+    <div id="weekly-chart"></div>
+    <div id="weekly-legend" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;font-size:10px"></div>
+  </div>
+
+  <div class="card">
+    <div style="font-weight:500;font-size:13px;margin-bottom:8px">Settimane salvate <span style="font-size:11px;color:var(--tx2);font-weight:400">(clicca per dettagli)</span></div>
+    ${tblClickable(['Settimana dal','Carico tot.','Sessioni','Minuti'],S.weekly.slice().reverse().slice(0,12).map(w=>({cells:[w.date,w.load+' sRPE',w.sessions,w.totalMin||'—'],onclick:`viewWeeklyDetail('${w.id}')`})),'Nessuna settimana salvata')}
+  </div>`;
+};
+
+INI.weekly=()=>{
+  for(let i=0;i<7;i++)renderWeekDayBlocks(i);
+  calcWeeklyTotals();
+};
+
+function addWeekWorkBlock(dayIdx){
+  const workTypes=['Tecnico-Tattico','Potenza','Forza','Aerobico','Warm-up','Rifinitura','Recovery','Partita','Altro'];
+  window._weekPlan = window._weekPlan || [[],[],[],[],[],[],[]];
+  if(!window._weekPlan[dayIdx])window._weekPlan[dayIdx]=[];
+  window._weekPlan[dayIdx].push({id:rid(), type:workTypes[0], min:20, rpe:5});
+  renderWeekDayBlocks(dayIdx);
+  calcWeeklyTotals();
+}
+
+function removeWeekWorkBlock(dayIdx, blockId){
+  if(!window._weekPlan?.[dayIdx])return;
+  window._weekPlan[dayIdx] = window._weekPlan[dayIdx].filter(b=>b.id!==blockId);
+  renderWeekDayBlocks(dayIdx);
+  calcWeeklyTotals();
+}
+
+function updWeekBlock(dayIdx, blockId, field, value){
+  const block = window._weekPlan?.[dayIdx]?.find(b=>b.id===blockId);
+  if(!block)return;
+  if(field==='type') block.type = value;
+  if(field==='min') block.min = +value||0;
+  if(field==='rpe') block.rpe = +value||0;
+  calcWeeklyTotals();
+}
+
+function renderWeekDayBlocks(dayIdx){
+  const workTypes=['Tecnico-Tattico','Potenza','Forza','Aerobico','Warm-up','Rifinitura','Recovery','Partita','Altro'];
+  const el = document.getElementById(`wday-blocks-${dayIdx}`);
+  if(!el)return;
+  const blocks = window._weekPlan?.[dayIdx]||[];
+  el.innerHTML = blocks.map(b=>`
+    <div style="background:var(--bg);border-radius:5px;padding:4px;margin-bottom:3px;border:.5px solid var(--bd)">
+      <select onchange="updWeekBlock(${dayIdx},'${b.id}','type',this.value)" style="font-size:9px;margin-bottom:2px;padding:1px">
+        ${workTypes.map(t=>`<option ${t===b.type?'selected':''}>${t}</option>`).join('')}
+      </select>
+      <div style="display:flex;gap:2px">
+        <input type="number" value="${b.min}" min="0" max="240" placeholder="min" style="font-size:9px;width:50%;padding:1px" onchange="updWeekBlock(${dayIdx},'${b.id}','min',this.value)">
+        <input type="number" value="${b.rpe}" min="0" max="10" placeholder="RPE" style="font-size:9px;width:50%;padding:1px" onchange="updWeekBlock(${dayIdx},'${b.id}','rpe',this.value)">
+        <button onclick="removeWeekWorkBlock(${dayIdx},'${b.id}')" style="font-size:9px;padding:1px 3px;background:transparent;border:none;color:var(--erT);cursor:pointer">✕</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function calcWeeklyTotals(){
+  const typeColors={'Tecnico-Tattico':'#3b82f6','Potenza':'#e31e24','Forza':'#7c3aed','Aerobico':'#10b981','Warm-up':'#f59e0b','Rifinitura':'#eab308','Recovery':'#06b6d4','Partita':'#dc2626','Altro':'#6b7280'};
+  const weekPlan = window._weekPlan||[[],[],[],[],[],[],[]];
+  let totalLoad=0, totalSessions=0, totalMin=0;
+  const dayData = weekPlan.map((blocks,i)=>{
+    const dayMin = blocks.reduce((s,b)=>s+b.min,0);
+    const dayLoad = blocks.reduce((s,b)=>s+b.min*b.rpe,0);
+    const dayRpeAvg = dayMin>0 ? dayLoad/dayMin : 0;
+    totalMin+=dayMin;
+    totalLoad+=dayLoad;
+    if(blocks.length>0)totalSessions++;
+    const summaryEl=document.getElementById(`wday-summary-${i}`);
+    if(summaryEl)summaryEl.textContent = dayMin>0?`${dayLoad} sRPE`:'';
+    return {blocks, dayMin, dayLoad, dayRpeAvg};
+  });
+
+  const le=document.getElementById('wpl');if(le)le.textContent=totalLoad;
+  const se=document.getElementById('wps');if(se)se.textContent=totalSessions;
+  const me=document.getElementById('wpmin');if(me)me.textContent=totalMin;
+
+  const chartEl=document.getElementById('weekly-chart');
+  if(chartEl)chartEl.innerHTML=renderWeeklyChart(dayData, typeColors);
+
+  const legendEl=document.getElementById('weekly-legend');
+  if(legendEl){
+    const usedTypes=new Set();
+    dayData.forEach(d=>d.blocks.forEach(b=>usedTypes.add(b.type)));
+    legendEl.innerHTML=[...usedTypes].map(t=>`<div style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;background:${typeColors[t]};border-radius:2px;display:inline-block"></span>${t}</div>`).join('')+
+      `<div style="display:flex;align-items:center;gap:4px"><span style="width:14px;height:2px;background:var(--pu);display:inline-block"></span>RPE medio (linea)</div>`;
+  }
+}
+
+function renderWeeklyChart(dayData, typeColors){
+  const days=['Lun','Mar','Mer','Gio','Ven','Sab','Dom'];
+  const W=360, H=220, padL=36, padB=24, padT=14, padR=14;
+  const chartW = W-padL-padR, chartH = H-padT-padB;
+  const maxMin = Math.max(...dayData.map(d=>d.dayMin), 60)*1.15;
+  const colW = chartW/7;
+
+  let svg = `<svg viewBox="0 0 ${W} ${H}" style="width:100%;max-width:420px;height:auto">`;
+  // Griglia orizzontale
+  for(let i=0;i<=4;i++){
+    const y = padT + chartH - (chartH*i/4);
+    svg += `<line x1="${padL}" y1="${y}" x2="${W-padR}" y2="${y}" stroke="var(--bd)" stroke-width="0.5"/>`;
+    svg += `<text x="${padL-4}" y="${y+3}" font-size="7" fill="var(--tx2)" text-anchor="end">${Math.round(maxMin*i/4)}</text>`;
+  }
+  // Colonne impilate (volume per tipo di lavoro)
+  dayData.forEach((d,i)=>{
+    let yOffset = 0;
+    const x = padL + i*colW + colW*0.15;
+    const barW = colW*0.7;
+    d.blocks.forEach(b=>{
+      const barH = (b.min/maxMin)*chartH;
+      const y = padT+chartH-yOffset-barH;
+      svg += `<rect x="${x}" y="${y}" width="${barW}" height="${barH}" fill="${typeColors[b.type]||'#999'}" opacity="0.9"/>`;
+      yOffset += barH;
+    });
+    svg += `<text x="${x+barW/2}" y="${H-8}" font-size="8" fill="var(--tx2)" text-anchor="middle">${days[i]}</text>`;
+  });
+  // Linea RPE medio (scala separata 0-10 mappata sull'altezza del grafico)
+  const maxRpe = 10;
+  const points = dayData.map((d,i)=>{
+    const x = padL + i*colW + colW*0.5;
+    const y = padT + chartH - (d.dayRpeAvg/maxRpe)*chartH;
+    return {x,y,rpe:d.dayRpeAvg};
+  });
+  const pathD = points.map((p,i)=>`${i===0?'M':'L'}${p.x},${p.y}`).join(' ');
+  svg += `<path d="${pathD}" fill="none" stroke="var(--pu)" stroke-width="2.5"/>`;
+  points.forEach(p=>{
+    if(p.rpe>0){
+      svg += `<circle cx="${p.x}" cy="${p.y}" r="3.5" fill="var(--pu)" stroke="#fff" stroke-width="1"/>`;
+      svg += `<text x="${p.x}" y="${p.y-7}" font-size="7" fill="var(--pu)" text-anchor="middle" font-weight="700">${p.rpe.toFixed(1)}</text>`;
+    }
+  });
+  svg += `<text x="6" y="${padT}" font-size="7" fill="var(--tx2)">min</text>`;
+  svg += '</svg>';
+  return svg;
+}
+
+function saveWeekly(){
+  const weekPlan = window._weekPlan||[[],[],[],[],[],[],[]];
+  const d = document.getElementById('wpd')?.value||today();
+  let totalLoad=0, totalSessions=0, totalMin=0;
+  const daysSnapshot = weekPlan.map(blocks=>{
+    const dayMin = blocks.reduce((s,b)=>s+b.min,0);
+    const dayLoad = blocks.reduce((s,b)=>s+b.min*b.rpe,0);
+    totalMin+=dayMin; totalLoad+=dayLoad;
+    if(blocks.length>0)totalSessions++;
+    return blocks.map(b=>({type:b.type,min:b.min,rpe:b.rpe}));
+  });
+  S.weekly.push({id:rid(), date:d, load:totalLoad, sessions:totalSessions, totalMin, days:daysSnapshot});
+  save();
+  alert('✅ Settimana salvata!');
+  window._weekPlan = [[],[],[],[],[],[],[]];
+  render('weekly');
+}
+
+function viewWeeklyDetail(weekId){
+  const w = S.weekly.find(x=>x.id===weekId);
+  if(!w){alert('Settimana non trovata');return;}
+  const days=['Lunedì','Martedì','Mercoledì','Giovedì','Venerdì','Sabato','Domenica'];
+  const body = `
+    <div class="grid2" style="gap:10px;margin-bottom:14px">
+      ${mC('Settimana dal',w.date)}
+      ${mC('Carico totale',w.load+' sRPE','','var(--pu)')}
+      ${mC('Sessioni',w.sessions)}
+      ${mC('Minuti totali',w.totalMin||'—')}
+    </div>
+    ${(w.days||[]).map((blocks,i)=>blocks&&blocks.length?`<div style="margin-bottom:10px">
+      <div style="font-weight:700;font-size:12px;color:var(--pu);margin-bottom:4px">${days[i]}</div>
+      ${blocks.map(b=>`<div style="font-size:12px;padding:3px 0;border-bottom:.5px solid var(--bd)">${esc(b.type)} — ${b.min}min · RPE ${b.rpe}</div>`).join('')}
+    </div>`:'').join('')}
+  `;
+  const footer = `<button class="secondary" style="color:var(--erT)" onclick="deleteWeeklyPlan('${weekId}')">🗑️ Elimina settimana</button>`;
+  openMosyModal(`Settimana ${w.date}`, body, footer);
+}
+
+function deleteWeeklyPlan(weekId){
+  if(!confirm('Eliminare questa settimana pianificata?'))return;
+  S.weekly = S.weekly.filter(x=>x.id!==weekId);
+  save();
+  closeMosyModal();
+  render('weekly');
+}
+
 
 // ══ MACRO-MESOCICLO ══
 R.macro=()=>{const types=['Partita','Allenamento','Forza','Aerobico','Recovery','Off/Riposo','Trasferta','Test/Valutazione'];const tC={Partita:'#fecaca',Allenamento:'#dbeafe',Forza:'#ede9fe',Aerobico:'#d1fae5',Recovery:'#cffafe','Off/Riposo':'var(--bg2)',Trasferta:'#fef9c3','Test/Valutazione':'#f3e8ff'};const now=new Date(),y=now.getFullYear(),m=now.getMonth();const dim=new Date(y,m+1,0).getDate(),dow=(new Date(y,m,1).getDay()+6)%7;const mN=['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];const ebd={};S.macro.forEach(e=>{ebd[e.date]=[...(ebd[e.date]||[]),e];});const td=today();const cells=[...Array(dow).fill('<div></div>'),...Array.from({length:dim},(_,i)=>{const day=i+1,ds=`${y}-${String(m+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;const ev=ebd[ds]||[];const bg=ev.length>0?(tC[ev[0].type]||'var(--bg2)'):'var(--bg2)';return `<div style="background:${bg};border-radius:5px;padding:4px 3px;min-height:36px;border:${ds===td?'1.5px solid var(--pu)':'.5px solid var(--bd)'};font-size:10px"><div style="font-weight:600;margin-bottom:1px">${day}</div>${ev.map(e=>`<div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#374151;font-size:9px">${e.type}${e.opponent?' – '+e.opponent:''}</div>`).join('')}</div>`;})].join('');
@@ -2232,6 +3270,55 @@ function buildExSel(id, selVal) {
 .mob-nav-btn.active{color:#e31e24}
 .mob-nav-btn span{font-size:18px;line-height:1}
 </style>
+<style>
+.mosy-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:5000;display:none;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(2px)}
+.mosy-modal-overlay.open{display:flex}
+.mosy-modal-box{background:var(--bg);border-radius:16px;max-width:680px;width:100%;max-height:88vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.4);border:1px solid var(--bd2)}
+.mosy-modal-header{position:sticky;top:0;background:var(--bg);border-bottom:1px solid var(--bd);padding:16px 20px;display:flex;justify-content:space-between;align-items:center;z-index:10;border-radius:16px 16px 0 0}
+.mosy-modal-title{font-weight:700;font-size:16px;text-transform:uppercase;letter-spacing:.5px}
+.mosy-modal-close{background:transparent;border:none;font-size:22px;cursor:pointer;color:var(--tx2);padding:4px 10px;line-height:1;border-radius:6px}
+.mosy-modal-close:hover{background:var(--bg2);color:var(--tx)}
+.mosy-modal-body{padding:18px 20px}
+.mosy-modal-footer{padding:14px 20px;border-top:1px solid var(--bd);display:flex;gap:10px;flex-wrap:wrap;position:sticky;bottom:0;background:var(--bg);border-radius:0 0 16px 16px}
+.row-clickable{cursor:pointer;transition:background .12s}
+.row-clickable:hover{background:var(--bg2)!important}
+</style>
+<div class="mosy-modal-overlay" id="mosy-modal" onclick="if(event.target===this)closeMosyModal()">
+  <div class="mosy-modal-box">
+    <div class="mosy-modal-header">
+      <span class="mosy-modal-title" id="mosy-modal-title">Dettaglio</span>
+      <button class="mosy-modal-close" onclick="closeMosyModal()">✕</button>
+    </div>
+    <div class="mosy-modal-body" id="mosy-modal-body"></div>
+    <div class="mosy-modal-footer" id="mosy-modal-footer"></div>
+  </div>
+</div>
+<script>
+function openMosyModal(title, bodyHtml, footerHtml){
+  document.getElementById('mosy-modal-title').textContent = title;
+  document.getElementById('mosy-modal-body').innerHTML = bodyHtml;
+  document.getElementById('mosy-modal-footer').innerHTML = footerHtml || '';
+  document.getElementById('mosy-modal').classList.add('open');
+}
+function closeMosyModal(){
+  document.getElementById('mosy-modal').classList.remove('open');
+}
+document.addEventListener('keydown', e=>{
+  if(e.key==='Escape') closeMosyModal();
+});
+
+// Genera una riga di tabella cliccabile con onclick personalizzato.
+// Usa lo stesso stile della funzione tbl() esistente ma aggiunge cursore e handler.
+function tblClickable(heads, rowsWithHandlers, emptyMsg){
+  // rowsWithHandlers: array di {cells: [...], onclick: 'nomeFunzione(\"id\")'}
+  const th = heads.map(h=>`<th>${h}</th>`).join('');
+  const tr = rowsWithHandlers.length===0
+    ? `<tr><td colspan="${heads.length}" style="text-align:center;padding:16px;color:var(--tx2)">${emptyMsg||'Nessun dato'}</td></tr>`
+    : rowsWithHandlers.map(r=>`<tr class="row-clickable" onclick="${r.onclick}">${r.cells.map(c=>`<td>${c??'—'}</td>`).join('')}</tr>`).join('');
+  return `<div class="tbl-wrap"><table><thead><tr>${th}</tr></thead><tbody>${tr}</tbody></table></div>`;
+}
+</script>
+
 <div class="mob-nav" id="mob-nav"></div>
 <script>
 // Build mobile bottom nav
