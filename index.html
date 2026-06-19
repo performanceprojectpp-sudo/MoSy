@@ -61,122 +61,6 @@ td{padding:6px 8px;border-bottom:.5px solid var(--bd);overflow:hidden;text-overf
 @media(min-width:641px){.topbar-logo-img{display:block !important}} @media(max-width:400px){.topbar-title{font-size:12px!important}}
 #pwa-banner{display:none;position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:#e31e24;color:#fff;padding:10px 20px;border-radius:24px;font-size:13px;font-weight:500;cursor:pointer;z-index:999;box-shadow:0 4px 16px rgba(227,30,36,.5)}
 </style></head><body>
-<style>
-#license-screen{position:fixed;inset:0;background:#0d0d0d;z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px}
-#license-card{background:#1a1a1a;border:1px solid #e31e24;border-radius:16px;padding:32px 28px;max-width:380px;width:100%;box-shadow:0 8px 40px rgba(227,30,36,0.3)}
-#license-card .logo-row{display:flex;align-items:center;gap:12px;margin-bottom:24px}
-#license-card .logo-circle{width:48px;height:48px;border-radius:50%;overflow:hidden;border:2px solid #e31e24;flex-shrink:0}
-#license-card .logo-circle img{width:100%;height:100%;object-fit:cover}
-#license-card h1{color:#fff;font-size:18px;font-weight:700;margin:0;letter-spacing:0.5px}
-#license-card .sub{color:#e31e24;font-size:11px;font-weight:600;letter-spacing:1px;margin-top:2px}
-#license-card p{color:#aaa;font-size:13px;line-height:1.6;margin-bottom:20px}
-#license-card label{display:block;color:#888;font-size:12px;margin-bottom:6px}
-#license-card input{width:100%;background:#111;border:1px solid #333;border-radius:8px;padding:11px 14px;color:#fff;font-size:14px;margin-bottom:14px;font-family:inherit;box-sizing:border-box}
-#license-card input:focus{outline:none;border-color:#e31e24}
-#license-card input#lic-code{text-transform:uppercase;letter-spacing:1px;font-family:monospace}
-#license-card button{width:100%;background:#e31e24;color:#fff;border:none;border-radius:8px;padding:13px;font-size:14px;font-weight:700;cursor:pointer;letter-spacing:0.5px;font-family:inherit}
-#license-card button:active{opacity:0.85}
-#license-card .error-msg{color:#ff6b6b;font-size:12px;margin-top:10px;text-align:center;min-height:16px}
-#license-card .footer-note{color:#555;font-size:10px;text-align:center;margin-top:20px;line-height:1.5}
-</style>
-
-<div id="license-screen">
-  <div id="license-card">
-    <div class="logo-row">
-      <div class="logo-circle"><img src="logo1.jpg" alt="Performance Project"></div>
-      <div>
-        <h1>MoSy</h1>
-        <div class="sub">PERFORMANCE PROJECT</div>
-      </div>
-    </div>
-    <p>Inserisci il tuo nome (o nome del club/team) e il codice di attivazione che hai ricevuto per sbloccare l'app.</p>
-    <label for="lic-name">Nome / Club</label>
-    <input id="lic-name" type="text" placeholder="es. Mario Rossi" autocomplete="off">
-    <label for="lic-code">Codice di attivazione</label>
-    <input id="lic-code" type="text" placeholder="MOSY-XXXX-XXXX-XXXX-XXXX" autocomplete="off">
-    <button onclick="checkLicense()">Attiva MoSy</button>
-    <div class="error-msg" id="lic-error"></div>
-    <div class="footer-note">Il codice di attivazione viene fornito da Coach Claudio CSCS dopo l'acquisto. Per assistenza: performanceprojectpp@gmail.com</div>
-  </div>
-</div>
-
-<script>
-const LICENSE_KEY = 'mosy_license_v1';
-const LICENSE_YEAR = 2026; // Aggiorna se rilasci codici per anni futuri con scadenza
-
-async function sha256Hex(message){
-  const encoder = new TextEncoder();
-  const data = encoder.encode(message);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map(b => b.toString(16).padStart(2,'0')).join('').toUpperCase();
-}
-
-async function computeExpectedCode(clientName, year){
-  const SECRET_KEY = "PerformanceProject_MoSy_2026_ChiaviSegrete_Claudio";
-  const raw = clientName.toUpperCase().trim() + '-' + year + '-' + SECRET_KEY;
-  const hashHex = await sha256Hex(raw);
-  const codeRaw = hashHex.substring(0,16);
-  return 'MOSY-' + codeRaw.substring(0,4) + '-' + codeRaw.substring(4,8) + '-' + codeRaw.substring(8,12) + '-' + codeRaw.substring(12,16);
-}
-
-async function checkLicense(){
-  const name = document.getElementById('lic-name').value.trim();
-  const code = document.getElementById('lic-code').value.trim().toUpperCase();
-  const errEl = document.getElementById('lic-error');
-  errEl.textContent = '';
-
-  if(!name){ errEl.textContent = 'Inserisci il tuo nome o nome del club.'; return; }
-  if(!code){ errEl.textContent = 'Inserisci il codice di attivazione.'; return; }
-
-  // Prova con l'anno corrente e con l'anno precedente (tolleranza per codici emessi a fine anno)
-  const currentYear = new Date().getFullYear();
-  const candidates = [currentYear, currentYear - 1, LICENSE_YEAR];
-  let valid = false;
-  for(const y of candidates){
-    const expected = await computeExpectedCode(name, y);
-    if(expected === code){ valid = true; break; }
-  }
-
-  if(valid){
-    try{
-      localStorage.setItem(LICENSE_KEY, JSON.stringify({name, code, activatedAt: Date.now()}));
-    }catch(e){}
-    document.getElementById('license-screen').style.display = 'none';
-  } else {
-    errEl.textContent = 'Codice non valido per questo nome. Verifica di aver scritto il nome esattamente come fornito al momento dell\'acquisto.';
-  }
-}
-
-function checkExistingLicense(){
-  try{
-    const stored = localStorage.getItem(LICENSE_KEY);
-    if(stored){
-      const data = JSON.parse(stored);
-      if(data && data.name && data.code){
-        document.getElementById('license-screen').style.display = 'none';
-        return true;
-      }
-    }
-  }catch(e){}
-  return false;
-}
-
-// Esegui il controllo immediatamente
-if(checkExistingLicense()){
-  // Già attivato, niente da fare
-} else {
-  // Mostra schermata (è già visibile di default, niente da fare)
-  // Permette anche di premere Enter nel campo codice per attivare
-  document.addEventListener('DOMContentLoaded', ()=>{
-    document.getElementById('lic-code')?.addEventListener('keypress', e=>{
-      if(e.key === 'Enter') checkLicense();
-    });
-  });
-}
-</script>
-
-
 <div class="app">
   <div class="sidebar" id="sb">
     <div class="logo">
@@ -233,7 +117,7 @@ function loadStateWithRecovery(){
 }
 let S=loadStateWithRecovery() || {
   athletes:[{id:'a1',name:'Atleta',surname:'1',weight:70,height:1.75,age:16,sex:'M',fcmax:195,rhr:55,notes:''},{id:'a2',name:'Atleta',surname:'2',weight:65,height:1.72,age:16,sex:'M',fcmax:198,rhr:58,notes:''}],
-  tlm:[],hoopers:[],injuries:[],vam:[],lvp:[],gps:[],trimp:[],zscore:[],inol:[],weekly:[],macro:[],weights:[],nutritionNotes:'',feedbacks:[],vdecTests:[],jumpTests:[]
+  tlm:[],hoopers:[],injuries:[],vam:[],lvp:[],gps:[],trimp:[],zscore:[],inol:[],weekly:[],macro:[],weights:[],nutritionNotes:'',feedbacks:[],vdecTests:[],jumpTests:[],functionalTests:[]
 };
 let _saveDebounce=null;
 const save=()=>{
@@ -277,6 +161,7 @@ const MODULES=[
   {id:'weight',label:'Peso Atleti',icon:'⚖️'},
   {id:'export',label:'Esporta Report',icon:'💾'},
   {id:'feedback',label:'Feedback',icon:'💬'},
+  {id:'functional',label:'Test Funzionali',icon:'🩻'},
 ];
 
 const BODY_ZONES=['Head','NeckFront','L_Shoulder','R_Shoulder','L_UpperTrap','R_UpperTrap','L_Arm','R_Arm','L_Elbow','R_Elbow','L_Wrist','R_Wrist','L_Hand','R_Hand','L_Chest','R_Chest','L_Abs','R_Abs','L_Hip','R_Hip','L_BackUp','R_BackUp','L_BackLo','R_BackLo','L_Quad','R_Quad','L_Knee','R_Knee','L_Ham','R_Ham','L_Glute','R_Glute','L_Calf','R_Calf','L_Tibia','R_Tibia','L_Ankle','R_Ankle','L_Add','R_Add'];
@@ -1653,8 +1538,10 @@ function initRelTable(){
   for(let pct=50;pct<=110;pct+=5){
     const vo2pct=pct;
     const hrrpct=pct<=100?pct:100+((pct-100)*0.3);
-    const fcmaxApprox=pct<=100?(0.64+0.0036*pct/100*100*0)*0+0:0;
-    rows.push({vam:pct,vo2:vo2pct,hrr:Math.min(100,hrrpct).toFixed(0)});
+    const hrrClamped=Math.min(100,hrrpct);
+    // Formula Swain et al. (1994), ACSM: %FCmax = 0.64×%HRR + 37 (valida nel range pratico 50-95% HRR)
+    const fcmaxPct=Math.min(100,(0.64*hrrClamped+37));
+    rows.push({vam:pct,vo2:vo2pct,hrr:hrrClamped.toFixed(0),fcmax:fcmaxPct.toFixed(0)});
   }
   const colorFor=p=>{
     if(p<60)return['#dbeafe','#1e40af'];
@@ -1669,6 +1556,7 @@ function initRelTable(){
       <td style="padding:8px 10px;font-weight:700;color:${tc}">${r.vam}%</td>
       <td style="padding:8px 10px;color:${tc}">${r.vo2}%</td>
       <td style="padding:8px 10px;color:${tc}">${r.hrr}%</td>
+      <td style="padding:8px 10px;color:${tc}">${r.fcmax}%</td>
       <td style="padding:8px 10px;font-size:11px;color:${tc};opacity:0.85">${
         r.vam<60?'Recupero':r.vam<70?'Base aerobica':r.vam<80?'Aerobico medio':r.vam<90?'Soglia':r.vam<=100?'VO2max':'Anaerobico/Sprint'
       }</td>
@@ -1679,10 +1567,12 @@ function initRelTable(){
       <th style="text-align:left;padding:8px 10px;font-size:11px;color:var(--tx2)">% VAM</th>
       <th style="text-align:left;padding:8px 10px;font-size:11px;color:var(--tx2)">% VO2max</th>
       <th style="text-align:left;padding:8px 10px;font-size:11px;color:var(--tx2)">% HRR (Karvonen)</th>
+      <th style="text-align:left;padding:8px 10px;font-size:11px;color:var(--tx2)">% FCmax (stima)</th>
       <th style="text-align:left;padding:8px 10px;font-size:11px;color:var(--tx2)">Zona metabolica</th>
     </tr></thead>
     <tbody>${tableRows}</tbody>
-  </table></div>`;
+  </table></div>
+  <p style="font-size:10px;color:var(--tx3);margin-top:8px">% FCmax stimata con formula di popolazione (Swain et al. 1994, ACSM): %FCmax = 0.64×%HRR + 37. Per la prescrizione individuale precisa usa sempre %HRR (Karvonen) con i dati specifici dell'atleta.</p>`;
   const el=document.getElementById('vam-rel-table');
   if(el)el.innerHTML=html;
 }
@@ -2760,6 +2650,50 @@ async function exportExcel(){
     XLSX.utils.book_append_sheet(wb,wsW,'Monitoraggio Peso');
   }
 
+  // Foglio dettaglio granulare: ogni riga è un singolo esercizio di una sessione (warm-up, WOD o aerobico)
+  const detailRows = [];
+  S.tlm.forEach(e=>{
+    if(e.sessionData){
+      (e.sessionData.warmup||[]).forEach(w=>{
+        detailRows.push({Data:e.date,Atleta:e.athleteName,'Sezione':'Warm-up',Esercizio:w.name,Categoria:w.cat||'',Serie:w.sets||'',Reps:w.reps||'','Riposo (s)':w.rest||'',Carico:'',Note:w.notes||''});
+      });
+      (e.sessionData.exercises||[]).forEach(x=>{
+        detailRows.push({Data:e.date,Atleta:e.athleteName,'Sezione':'WOD',Esercizio:x.name,Categoria:'',Serie:x.sets||'',Reps:x.reps||'','Riposo (s)':x.rest||'',Carico:x.kg?x.kg+'kg':(x.load?x.load+'%1RM':''),Note:x.notes||''});
+      });
+      (e.sessionData.aerobic||[]).forEach(a=>{
+        detailRows.push({Data:e.date,Atleta:e.athleteName,'Sezione':'Aerobico',Esercizio:a.name,Categoria:a.summary||'',Serie:'',Reps:'','Riposo (s)':'',Carico:'',Note:a.notes||''});
+      });
+    } else if(e.exercise){
+      detailRows.push({Data:e.date,Atleta:e.athleteName,'Sezione':'Forza (legacy)',Esercizio:e.exercise,Categoria:'',Serie:e.sets||'',Reps:e.reps||'','Riposo (s)':'',Carico:e.load?e.load+'%1RM':'',Note:''});
+    }
+  });
+  if(detailRows.length){
+    const wsDetail=XLSX.utils.json_to_sheet(detailRows);
+    XLSX.utils.book_append_sheet(wb,wsDetail,'Dettaglio Esercizi');
+  }
+
+  if(S.lvp.length){
+    const wsLvp=XLSX.utils.json_to_sheet(S.lvp.map(p=>({
+      Data:p.date,Atleta:p.athleteName,Esercizio:p.exercise,'Carico (kg)':p.load,'Velocità (m/s)':p.velocity,Zona:p.zone
+    })));
+    XLSX.utils.book_append_sheet(wb,wsLvp,'LVP Esercizi');
+  }
+
+  if((S.jumpTests||[]).length){
+    const wsJump=XLSX.utils.json_to_sheet(S.jumpTests.map(j=>({
+      Data:j.date,Atleta:j.athleteName,'SJ (cm)':j.sjHeight?.toFixed(1)||'','CMJ (cm)':j.cmjHeight?.toFixed(1)||'',
+      'Bosco Index (%)':j.bosco?.toFixed(1)||'','F0 (N/kg)':j.F0PerKg?.toFixed(2)||'','V0 (m/s)':j.V0?.toFixed(2)||'','Pmax (W/kg)':j.PmaxPerKg?.toFixed(2)||''
+    })));
+    XLSX.utils.book_append_sheet(wb,wsJump,'SJ-CMJ Bosco Samozino');
+  }
+
+  if((S.functionalTests||[]).length){
+    const wsFt=XLSX.utils.json_to_sheet(S.functionalTests.map(t=>({
+      Data:t.date,Atleta:t.athleteName,Test:t.testLabel,Risultato:t.resultSummary,Note:t.notes||''
+    })));
+    XLSX.utils.book_append_sheet(wb,wsFt,'Test Funzionali');
+  }
+
   XLSX.writeFile(wb,`MoSy_Report_${today()}.xlsx`);
 }
 
@@ -2805,10 +2739,37 @@ async function exportPDF(){
       doc.setFontSize(8);
       doc.setTextColor(50,50,50);
       athTlm.forEach(e=>{
-        checkPage(6);
+        checkPage(8);
         const esCount=(e.sessionData?.exercises?.length||0)+(e.sessionData?.aerobic?.length||0);
+        doc.setFontSize(8);
+        doc.setTextColor(50,50,50);
         doc.text(`${e.date} · ${e.type||'—'} · ${e.duration||'—'}min · RPE ${e.rpe||'—'} · sRPE ${e.srpe||'—'}${esCount?' · '+esCount+' esercizi':''}`,16,y);
         y+=5;
+        // Dettaglio granulare: ogni esercizio di warm-up, WOD e aerobico viene stampato riga per riga
+        if(e.sessionData){
+          (e.sessionData.warmup||[]).forEach(w=>{
+            checkPage(4);
+            doc.setFontSize(7);
+            doc.setTextColor(120,120,120);
+            doc.text(`  WU: ${w.name} — ${w.sets||''}x${w.reps||''} ${w.rest?'· '+w.rest+'s rest':''}`,18,y);
+            y+=4;
+          });
+          (e.sessionData.exercises||[]).forEach(x=>{
+            checkPage(4);
+            doc.setFontSize(7);
+            doc.setTextColor(100,100,100);
+            doc.text(`  WOD: ${x.name} — ${x.sets||''}x${x.reps||''}${x.load?' · '+x.load+'%1RM':''}${x.kg?' · '+x.kg+'kg':''}${x.rest?' · '+x.rest+'s rest':''} · INOL ${x.inol?.toFixed(3)||'—'}`,18,y);
+            y+=4;
+          });
+          (e.sessionData.aerobic||[]).forEach(a=>{
+            checkPage(4);
+            doc.setFontSize(7);
+            doc.setTextColor(5,150,105);
+            doc.text(`  AER: ${a.name} — ${a.summary||''}`,18,y);
+            y+=4;
+          });
+        }
+        y+=2;
       });
       y+=4;
     }
@@ -3069,6 +3030,290 @@ function markAllRead(){
   S.feedbacks.forEach(f=>f.read=true);save();render('feedback');
 }
 
+R.functional=()=>{
+  return sH('Registro Test Funzionali','FABER · FADDIR · FMS · Y-Balance · Single Leg Squat · Test di attivazione')+
+  `<div class="grid2">
+  <div class="card">
+    <div style="font-weight:700;font-size:13px;margin-bottom:12px;text-transform:uppercase">Nuovo test</div>
+    ${asel('ft-ath')}${inp('ft-date','Data','date',today())}
+    <div><label>Categoria test</label>
+    <select id="ft-cat" onchange="updFtCategory()" style="margin-bottom:10px;font-size:12px">
+      <optgroup label="── TEST ORTOPEDICI ANCA">
+        <option value="faber">FABER Test (Patrick's Test)</option>
+        <option value="faddir">FADDIR Test (FADIR)</option>
+      </optgroup>
+      <optgroup label="── SCREENING MOVIMENTO">
+        <option value="fms">FMS — Functional Movement Screen (7 test)</option>
+        <option value="ybalance">Y-Balance Test (Lower Quarter)</option>
+      </optgroup>
+      <optgroup label="── ATTIVAZIONE / CONTROLLO NEUROMUSCOLARE">
+        <option value="sls">Single Leg Squat Test</option>
+        <option value="trendelenburg">Trendelenburg Test</option>
+      </optgroup>
+      <optgroup label="── PERSONALIZZATO">
+        <option value="custom">Test personalizzato</option>
+      </optgroup>
+    </select></div>
+    <div id="ft-form-area"></div>
+    <button class="primary" onclick="saveFunctionalTest()" style="width:100%;margin-top:10px">💾 Salva test</button>
+  </div>
+  <div>
+    <div class="card" id="ft-info-card" style="margin-bottom:12px">
+      <div style="font-weight:700;font-size:13px;margin-bottom:8px;text-transform:uppercase">Informazioni sul test</div>
+      <div id="ft-info-content"></div>
+    </div>
+  </div>
+  </div>
+  <div class="card" style="margin-top:14px">
+    <div style="font-weight:700;font-size:13px;margin-bottom:8px;text-transform:uppercase">Storico test funzionali <span style="font-size:11px;color:var(--tx2);font-weight:400">(clicca per dettagli)</span></div>
+    ${tblClickable(['Data','Atleta','Test','Risultato'],(S.functionalTests||[]).slice().reverse().slice(0,20).map(t=>({cells:[t.date,t.athleteName,t.testLabel,t.resultSummary],onclick:`viewFunctionalTestDetail('${t.id}')`})),'Nessun test funzionale registrato')}
+  </div>
+  <div class="card" style="margin-top:14px">
+    <div style="font-weight:700;font-size:13px;margin-bottom:8px;text-transform:uppercase">⚠️ Nota clinica importante</div>
+    <p style="font-size:11px;color:var(--tx2);line-height:1.7">Questi test sono strumenti di screening orientativi, non diagnostici. La letteratura scientifica recente (Shanmugaraj et al. 2020; Reiman et al. 2015) evidenzia limiti di sensibilità/specificità per i test ortopedici (es. FADDIR/FABER) e cautela nell'uso predittivo puro di FMS e Y-Balance Test (correlazione FMS-injury contestata in studi più recenti). Un risultato positivo o uno score basso NON costituisce diagnosi: in presenza di dolore o sospetto clinico, indirizzare sempre l'atleta a uno specialista (medico ortopedico, fisioterapista).</p>
+  </div>`;
+};
+
+const FT_DEFINITIONS = {
+  faber: {
+    label: "FABER Test (Patrick's)",
+    info: "Valuta la patologia dell'articolazione dell'anca e sacro-iliaca. Il paziente è supino, l'esaminatore porta l'anca in Flessione, ABduzione ed Extrarotazione (posizione 'a 4'), posizionando il malleolo esterno sul ginocchio controlaterale. Si applica una leggera pressione sul ginocchio flesso. Positivo se riproduce dolore in zona inguinale, gluteo o sacro-iliaca.",
+    source: "Fonte: Reiman et al. (2015) Br J Sports Med; affidabilità inter-esaminatore K=0.60",
+    resultType: 'side_positive_negative'
+  },
+  faddir: {
+    label: "FADDIR Test (FADIR)",
+    info: "Valuta l'impingement femoro-acetabolare (FAI) anteriore e patologie del labbro acetabolare. Paziente supino, anca flessa a 90-100°, l'esaminatore applica ADduzione e Intrarotazione passiva. Positivo se riproduce dolore inguinale.",
+    source: "Fonte: Reiman et al. (2015); sensibilità 41-95%, specificità 47-52% — risultati da interpretare con cautela e sempre insieme alla storia clinica",
+    resultType: 'side_positive_negative'
+  },
+  fms: {
+    label: "FMS — Functional Movement Screen",
+    info: "Batteria di 7 test che valutano la qualità del movimento fondamentale, sviluppata da Gray Cook. Ogni test è punteggiato 0-3 (0=dolore, 1=incapace di completare, 2=completa con compensi, 3=esegue correttamente). Score totale 0-21.",
+    source: "Fonte: Cook et al. (2014) Int J Sports Phys Ther. Soglia di riferimento storica ≤14 = rischio aumentato (cut-off dibattuto in studi recenti, usare con cautela come unico predittore)",
+    resultType: 'fms'
+  },
+  ybalance: {
+    label: "Y-Balance Test (Lower Quarter)",
+    info: "Valuta l'equilibrio dinamico monopodalico in 3 direzioni: Anteriore (ANT), Postero-Mediale (PM), Postero-Laterale (PL). Il punteggio composito è normalizzato per la lunghezza dell'arto.",
+    source: "Fonte: Plisky et al. (2006); Smith et al. (2015). Soglia di rischio tipica: composite score <89-94% (varia per sport), asimmetria anteriore ≥4cm associata a rischio aumentato (OR 2.2)",
+    resultType: 'ybalance'
+  },
+  sls: {
+    label: "Single Leg Squat Test",
+    info: "Valuta forza e controllo neuromuscolare di quadricipite, gluteo medio/massimo e stabilizzatori d'anca. L'atleta esegue 5 squat monopodalici; si osserva eventuale valgismo dinamico del ginocchio (Medial Knee Displacement) o perdita di controllo pelvico.",
+    source: "Fonte: DiMattia et al. (2004); Livengood et al. Athletic Therapy Today. Positivo per MKD se osservato in ≥3 dei 5 squat",
+    resultType: 'side_positive_negative'
+  },
+  trendelenburg: {
+    label: "Trendelenburg Test",
+    info: "Valuta forza e controllo degli abduttori d'anca (gluteo medio). L'atleta sta in appoggio monopodalico per 30 secondi; positivo se il bacino cade sul lato non in appoggio (segno di Trendelenburg) o se compensa con inclinazione del tronco.",
+    source: "Fonte: Hardcastle & Nade (1985) J Bone Joint Surg; Bird & Fell (2014) Physiother Res Int",
+    resultType: 'side_positive_negative'
+  },
+  custom: {
+    label: "Test personalizzato",
+    info: "Inserisci un test funzionale non presente nell'elenco predefinito.",
+    source: "",
+    resultType: 'custom'
+  }
+};
+
+function updFtCategory(){
+  const cat = document.getElementById('ft-cat')?.value || 'faber';
+  const def = FT_DEFINITIONS[cat];
+  const infoEl = document.getElementById('ft-info-content');
+  if(infoEl && def){
+    infoEl.innerHTML = `<p style="font-size:12px;line-height:1.6;margin-bottom:8px">${def.info}</p><p style="font-size:10px;color:var(--tx3)">${def.source}</p>`;
+  }
+  const formEl = document.getElementById('ft-form-area');
+  if(!formEl)return;
+
+  if(def.resultType === 'side_positive_negative'){
+    formEl.innerHTML = `
+      <div class="grid2" style="gap:10px">
+        <div><label>Lato Destro</label><select id="ft-right">
+          <option value="negative">Negativo</option>
+          <option value="positive">Positivo</option>
+          <option value="not_tested">Non testato</option>
+        </select></div>
+        <div><label>Lato Sinistro</label><select id="ft-left">
+          <option value="negative">Negativo</option>
+          <option value="positive">Positivo</option>
+          <option value="not_tested">Non testato</option>
+        </select></div>
+      </div>
+      <div><label>Note cliniche</label><textarea id="ft-notes" rows="2" style="resize:vertical"></textarea></div>
+    `;
+  } else if(def.resultType === 'fms'){
+    const tests = ['Deep Squat','Hurdle Step Dx','Hurdle Step Sx','In-Line Lunge Dx','In-Line Lunge Sx','Shoulder Mobility Dx','Shoulder Mobility Sx','Active Straight-Leg Raise Dx','Active Straight-Leg Raise Sx','Trunk Stability Push-Up','Rotary Stability Dx','Rotary Stability Sx'];
+    formEl.innerHTML = `
+      <div style="font-size:11px;color:var(--tx2);margin-bottom:8px">Punteggio per ciascun test: 0 (dolore) · 1 (incapace) · 2 (con compensi) · 3 (corretto)</div>
+      ${tests.map((t,i)=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:.5px solid var(--bd)"><span style="font-size:12px">${t}</span><select id="ft-fms-${i}" style="width:60px;font-size:11px;margin:0"><option value="3">3</option><option value="2">2</option><option value="1">1</option><option value="0">0</option></select></div>`).join('')}
+      <div style="margin-top:10px;padding:10px;background:var(--bg2);border-radius:8px;text-align:center">
+        <div style="font-size:11px;color:var(--tx2)">Score Totale FMS</div>
+        <div id="ft-fms-total" style="font-size:24px;font-weight:700;color:var(--pu)">21</div>
+      </div>
+      <div><label style="margin-top:8px">Note</label><textarea id="ft-notes" rows="2" style="resize:vertical"></textarea></div>
+    `;
+    setTimeout(()=>{
+      const upd=()=>{
+        let tot=0;
+        for(let i=0;i<12;i+=2){
+          const a=+document.getElementById(`ft-fms-${i}`)?.value||0;
+          const b=+document.getElementById(`ft-fms-${i+1}`)?.value;
+          // per i test bilaterali (hurdle, lunge, shoulder, ASLR, rotary) prendo il minimo dei due lati come da protocollo FMS originale
+          if(!isNaN(b)){tot+=Math.min(a,b);}
+          else{tot+=a;} // deep squat e trunk stability sono unici
+        }
+        // Ricalcolo corretto: Deep Squat(idx0) + min(Hurdle L/R)(1,2) + min(Lunge L/R)(3,4) + min(Shoulder L/R)(5,6) + min(ASLR L/R)(7,8) + TrunkPushUp(9) + min(Rotary L/R)(10,11)
+        const v=i=>+document.getElementById(`ft-fms-${i}`)?.value||0;
+        const total = v(0) + Math.min(v(1),v(2)) + Math.min(v(3),v(4)) + Math.min(v(5),v(6)) + Math.min(v(7),v(8)) + v(9) + Math.min(v(10),v(11));
+        const el=document.getElementById('ft-fms-total');
+        if(el){el.textContent=total; el.style.color = total<=14?'var(--erT)':'var(--okT)';}
+      };
+      for(let i=0;i<12;i++) document.getElementById(`ft-fms-${i}`)?.addEventListener('change',upd);
+      upd();
+    },50);
+  } else if(def.resultType === 'ybalance'){
+    formEl.innerHTML = `
+      <div class="grid2" style="gap:10px">
+        <div><label>Lunghezza arto Dx (cm)</label><input id="ft-yb-leglenR" type="number" value="90" min="50" max="120" step="0.5"></div>
+        <div><label>Lunghezza arto Sx (cm)</label><input id="ft-yb-leglenL" type="number" value="90" min="50" max="120" step="0.5"></div>
+      </div>
+      <div style="font-size:11px;font-weight:600;color:var(--tx2);margin:8px 0 4px">Destro — reach distance (cm)</div>
+      <div class="grid2" style="gap:8px">
+        <input id="ft-yb-r-ant" type="number" placeholder="Anteriore" step="0.5">
+        <input id="ft-yb-r-pm" type="number" placeholder="Postero-Mediale" step="0.5">
+        <input id="ft-yb-r-pl" type="number" placeholder="Postero-Laterale" step="0.5">
+      </div>
+      <div style="font-size:11px;font-weight:600;color:var(--tx2);margin:8px 0 4px">Sinistro — reach distance (cm)</div>
+      <div class="grid2" style="gap:8px">
+        <input id="ft-yb-l-ant" type="number" placeholder="Anteriore" step="0.5">
+        <input id="ft-yb-l-pm" type="number" placeholder="Postero-Mediale" step="0.5">
+        <input id="ft-yb-l-pl" type="number" placeholder="Postero-Laterale" step="0.5">
+      </div>
+      <div id="ft-yb-result" style="margin-top:10px;padding:10px;background:var(--bg2);border-radius:8px"></div>
+      <div><label style="margin-top:8px">Note</label><textarea id="ft-notes" rows="2" style="resize:vertical"></textarea></div>
+    `;
+    setTimeout(()=>{
+      const upd=()=>{
+        const llR=+document.getElementById('ft-yb-leglenR')?.value||1;
+        const llL=+document.getElementById('ft-yb-leglenL')?.value||1;
+        const rAnt=+document.getElementById('ft-yb-r-ant')?.value||0, rPm=+document.getElementById('ft-yb-r-pm')?.value||0, rPl=+document.getElementById('ft-yb-r-pl')?.value||0;
+        const lAnt=+document.getElementById('ft-yb-l-ant')?.value||0, lPm=+document.getElementById('ft-yb-l-pm')?.value||0, lPl=+document.getElementById('ft-yb-l-pl')?.value||0;
+        const compR = ((rAnt+rPm+rPl)/(3*llR))*100;
+        const compL = ((lAnt+lPm+lPl)/(3*llL))*100;
+        const asymAnt = Math.abs(rAnt-lAnt);
+        const el=document.getElementById('ft-yb-result');
+        if(el)el.innerHTML=`<div class="grid2" style="gap:8px"><div><div style="font-size:11px;color:var(--tx2)">Composite Dx</div><div style="font-weight:700;font-size:16px">${compR.toFixed(1)}%</div></div><div><div style="font-size:11px;color:var(--tx2)">Composite Sx</div><div style="font-weight:700;font-size:16px">${compL.toFixed(1)}%</div></div></div><div style="margin-top:6px;font-size:11px;color:${asymAnt>=4?'var(--erT)':'var(--okT)'}">Asimmetria reach anteriore: ${asymAnt.toFixed(1)}cm ${asymAnt>=4?'⚠️ ≥4cm (rischio aumentato)':'✓ entro soglia'}</div>`;
+      };
+      ['ft-yb-leglenR','ft-yb-leglenL','ft-yb-r-ant','ft-yb-r-pm','ft-yb-r-pl','ft-yb-l-ant','ft-yb-l-pm','ft-yb-l-pl'].forEach(id=>document.getElementById(id)?.addEventListener('input',upd));
+      upd();
+    },50);
+  } else {
+    formEl.innerHTML = `
+      <div><label>Nome test</label><input id="ft-custom-name" type="text" placeholder="Nome del test personalizzato"></div>
+      <div><label>Risultato</label><input id="ft-custom-result" type="text" placeholder="es. Positivo/Negativo, punteggio, ecc."></div>
+      <div><label>Note</label><textarea id="ft-notes" rows="3" style="resize:vertical"></textarea></div>
+    `;
+  }
+}
+
+function saveFunctionalTest(){
+  const cat = document.getElementById('ft-cat')?.value || 'faber';
+  const def = FT_DEFINITIONS[cat];
+  const aid = document.getElementById('ft-ath')?.value;
+  const date = document.getElementById('ft-date')?.value || today();
+  const notes = document.getElementById('ft-notes')?.value || '';
+  let resultData = {}, resultSummary = '';
+
+  if(def.resultType === 'side_positive_negative'){
+    const r = document.getElementById('ft-right')?.value;
+    const l = document.getElementById('ft-left')?.value;
+    resultData = {right:r, left:l};
+    const lbl = v=>v==='positive'?'Positivo':v==='negative'?'Negativo':'N/T';
+    resultSummary = `Dx: ${lbl(r)} · Sx: ${lbl(l)}`;
+  } else if(def.resultType === 'fms'){
+    const v = i=>+document.getElementById(`ft-fms-${i}`)?.value||0;
+    const total = v(0) + Math.min(v(1),v(2)) + Math.min(v(3),v(4)) + Math.min(v(5),v(6)) + Math.min(v(7),v(8)) + v(9) + Math.min(v(10),v(11));
+    const scores = [];
+    for(let i=0;i<12;i++) scores.push(v(i));
+    resultData = {scores, total};
+    resultSummary = `Score: ${total}/21 ${total<=14?'⚠️':''}`;
+  } else if(def.resultType === 'ybalance'){
+    const llR=+document.getElementById('ft-yb-leglenR')?.value||1;
+    const llL=+document.getElementById('ft-yb-leglenL')?.value||1;
+    const rAnt=+document.getElementById('ft-yb-r-ant')?.value||0, rPm=+document.getElementById('ft-yb-r-pm')?.value||0, rPl=+document.getElementById('ft-yb-r-pl')?.value||0;
+    const lAnt=+document.getElementById('ft-yb-l-ant')?.value||0, lPm=+document.getElementById('ft-yb-l-pm')?.value||0, lPl=+document.getElementById('ft-yb-l-pl')?.value||0;
+    const compR = ((rAnt+rPm+rPl)/(3*llR))*100;
+    const compL = ((lAnt+lPm+lPl)/(3*llL))*100;
+    resultData = {legLenR:llR, legLenL:llL, rAnt,rPm,rPl, lAnt,lPm,lPl, compR, compL};
+    resultSummary = `Dx ${compR.toFixed(0)}% · Sx ${compL.toFixed(0)}%`;
+  } else {
+    const name = document.getElementById('ft-custom-name')?.value || 'Test personalizzato';
+    const result = document.getElementById('ft-custom-result')?.value || '';
+    resultData = {customName:name, customResult:result};
+    resultSummary = result || '—';
+  }
+
+  if(!S.functionalTests)S.functionalTests=[];
+  S.functionalTests.push({
+    id:rid(), athleteId:aid, athleteName:athName(aid), date,
+    testCategory:cat, testLabel: cat==='custom'?(resultData.customName||'Personalizzato'):def.label,
+    resultData, resultSummary, notes
+  });
+  save();
+  alert('✅ Test salvato!');
+  render('functional');
+}
+
+function viewFunctionalTestDetail(testId){
+  const t = (S.functionalTests||[]).find(x=>x.id===testId);
+  if(!t){alert('Test non trovato');return;}
+  let detailHtml = '';
+  if(t.testCategory==='fms'){
+    const labels=['Deep Squat','Hurdle Step Dx','Hurdle Step Sx','In-Line Lunge Dx','In-Line Lunge Sx','Shoulder Mob. Dx','Shoulder Mob. Sx','ASLR Dx','ASLR Sx','Trunk Stability','Rotary Stab. Dx','Rotary Stab. Sx'];
+    detailHtml = `<div style="margin-bottom:10px"><div style="font-size:20px;font-weight:700;color:${t.resultData.total<=14?'var(--erT)':'var(--okT)'}">${t.resultData.total}/21</div></div>`;
+    detailHtml += labels.map((l,i)=>`<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:.5px solid var(--bd);font-size:12px"><span>${l}</span><strong>${t.resultData.scores[i]}</strong></div>`).join('');
+  } else if(t.testCategory==='ybalance'){
+    detailHtml = `<div class="grid2" style="gap:10px;margin-bottom:10px">
+      <div class="metric-card"><div class="metric-label">Composite Dx</div><div class="metric-value">${t.resultData.compR.toFixed(1)}%</div></div>
+      <div class="metric-card"><div class="metric-label">Composite Sx</div><div class="metric-value">${t.resultData.compL.toFixed(1)}%</div></div>
+    </div>
+    <div style="font-size:12px">Reach Dx: ANT ${t.resultData.rAnt}cm · PM ${t.resultData.rPm}cm · PL ${t.resultData.rPl}cm</div>
+    <div style="font-size:12px">Reach Sx: ANT ${t.resultData.lAnt}cm · PM ${t.resultData.lPm}cm · PL ${t.resultData.lPl}cm</div>`;
+  } else if(t.resultData.right!==undefined){
+    const lbl=v=>v==='positive'?'🔴 Positivo':v==='negative'?'🟢 Negativo':'⚪ Non testato';
+    detailHtml = `<div style="font-size:13px;padding:6px 0">Lato Destro: <strong>${lbl(t.resultData.right)}</strong></div><div style="font-size:13px;padding:6px 0">Lato Sinistro: <strong>${lbl(t.resultData.left)}</strong></div>`;
+  } else {
+    detailHtml = `<div style="font-size:13px">${esc(t.resultData.customResult||t.resultSummary)}</div>`;
+  }
+  const body = `
+    <div class="grid2" style="gap:10px;margin-bottom:14px">
+      <div><div style="font-size:11px;color:var(--tx2)">Atleta</div><div style="font-weight:700">${esc(t.athleteName)}</div></div>
+      <div><div style="font-size:11px;color:var(--tx2)">Data</div><div style="font-weight:700">${t.date}</div></div>
+      <div style="grid-column:1/-1"><div style="font-size:11px;color:var(--tx2)">Test</div><div style="font-weight:700">${esc(t.testLabel)}</div></div>
+    </div>
+    ${detailHtml}
+    ${t.notes?`<div style="margin-top:12px;padding:10px;background:var(--bg2);border-radius:8px;font-size:12px">${esc(t.notes)}</div>`:''}
+  `;
+  const footer = `<button class="secondary" style="color:var(--erT)" onclick="deleteFunctionalTest('${testId}')">🗑️ Elimina test</button>`;
+  openMosyModal('Test Funzionale', body, footer);
+}
+
+function deleteFunctionalTest(testId){
+  if(!confirm('Eliminare questo test?'))return;
+  S.functionalTests = (S.functionalTests||[]).filter(x=>x.id!==testId);
+  save();
+  closeMosyModal();
+  render('functional');
+}
+
+INI.functional=()=>{
+  updFtCategory();
+};
+
 // PWA
 let deferredPrompt=null;
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;document.getElementById('pwa-banner').style.display='block';});
@@ -3324,8 +3569,8 @@ function tblClickable(heads, rowsWithHandlers, emptyMsg){
 // Build mobile bottom nav
 const mobNav = document.getElementById('mob-nav');
 if(mobNav){
-  const shortLabels = {dashboard:'Home',athletes:'Atleti',tlm_team:'TLM',tlm_resistance:'WOD',hooper:'Hooper',injury:'Injury',vam:'VAM',lvp:'LVP',gps:'GPS',trimp:'TRIMP',zscore:'Z-score',inol:'INOL',weekly:'Weekly',macro:'Macro',nutrition:'Nutri',weight:'Peso',export:'Export',feedback:'Chat'};
-  const icons = {dashboard:'⊞',athletes:'👥',tlm_team:'📊',tlm_resistance:'💪',hooper:'😊',injury:'🩺',vam:'🏃',lvp:'📈',gps:'📡',trimp:'❤️',zscore:'∑',inol:'⚡',weekly:'📅',macro:'🗓️',nutrition:'🥗',weight:'⚖️',export:'💾',feedback:'💬'};
+  const shortLabels = {dashboard:'Home',athletes:'Atleti',tlm_team:'TLM',tlm_resistance:'WOD',hooper:'Hooper',injury:'Injury',vam:'VAM',lvp:'LVP',gps:'GPS',trimp:'TRIMP',zscore:'Z-score',inol:'INOL',weekly:'Weekly',macro:'Macro',nutrition:'Nutri',weight:'Peso',export:'Export',feedback:'Chat',functional:'Test'};
+  const icons = {dashboard:'⊞',athletes:'👥',tlm_team:'📊',tlm_resistance:'💪',hooper:'😊',injury:'🩺',vam:'🏃',lvp:'📈',gps:'📡',trimp:'❤️',zscore:'∑',inol:'⚡',weekly:'📅',macro:'🗓️',nutrition:'🥗',weight:'⚖️',export:'💾',feedback:'💬',functional:'🩻'};
   MODULES.forEach(m=>{
     const btn = document.createElement('button');
     btn.className = 'mob-nav-btn' + (m.id==='dashboard'?' active':'');

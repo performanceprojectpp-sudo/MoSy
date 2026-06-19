@@ -1,4 +1,4 @@
-const CACHE = 'mosy-v5-lvp-gps-weekly';
+const CACHE = 'mosy-v6-no-license-full';
 const ASSETS = [
   './',
   './index.html',
