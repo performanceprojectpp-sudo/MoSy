@@ -1,4 +1,4 @@
-const CACHE = 'mosy-v6-no-license-full';
+const CACHE = 'mosy-v7-multipoint-samozino';
 const ASSETS = [
   './',
   './index.html',

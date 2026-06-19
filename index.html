@@ -1709,26 +1709,32 @@ R.lvp=()=>{
   <div id="lvppanel-jump" style="display:none">
   <div class="grid2">
   <div class="card">
-    <div style="font-weight:700;font-size:13px;margin-bottom:10px;text-transform:uppercase">Nuovo test SJ / CMJ</div>
+    <div style="font-weight:700;font-size:13px;margin-bottom:10px;text-transform:uppercase">Profilo SJ/CMJ — Atleta</div>
     ${asel('jmp-ath')}${inp('jmp-date','Data','date',today())}
     <div class="grid2" style="gap:10px">
       ${inp('jmp-mass','Peso corporeo (kg)','number',75,'min=30 max=200 step=0.1')}
       ${inp('jmp-hpo','Push-off distance (m)','number',0.40,'min=0.25 max=0.60 step=0.01')}
     </div>
     <p style="font-size:10px;color:var(--tx2);margin:-6px 0 10px">Push-off distance: distanza verticale percorsa dal centro di massa durante la spinta (tipicamente 0.35-0.45m, stima 0.30×statura se non misurata)</p>
-    <div style="font-size:12px;font-weight:600;color:var(--tx2);margin:6px 0;text-transform:uppercase">Squat Jump (SJ) — corpo libero</div>
-    <div class="grid2" style="gap:10px">${inp('jmp-sj-h','Altezza SJ (cm)','number',30,'min=5 max=80 step=0.1')}${inp('jmp-sj-load','Carico extra SJ (kg, 0 se libero)','number',0,'min=0 max=150 step=0.5')}</div>
-    <div style="font-size:12px;font-weight:600;color:var(--tx2);margin:10px 0 6px;text-transform:uppercase">Countermovement Jump (CMJ)</div>
+
+    <div style="font-size:12px;font-weight:600;color:var(--tx2);margin:10px 0 6px;text-transform:uppercase">Countermovement Jump (CMJ) — per Bosco Index</div>
     <div class="grid2" style="gap:10px">${inp('jmp-cmj-h','Altezza CMJ (cm)','number',36,'min=5 max=90 step=0.1')}</div>
-    <div style="font-size:12px;font-weight:600;color:var(--tx2);margin:10px 0 6px;text-transform:uppercase">Secondo punto SJ caricato (per Samozino F-V, opzionale ma raccomandato)</div>
-    <p style="font-size:10px;color:var(--tx2);margin:-4px 0 8px">Per calcolare F0/V0/Pmax in modo scientificamente valido serve un secondo salto con carico aggiunto (metodo a 2 punti, García-Ramos et al.). Senza secondo punto, verranno mostrati solo i valori del singolo salto.</p>
-    <div class="grid2" style="gap:10px">${inp('jmp-sj2-load','Carico 2° SJ (kg)','number',0,'min=0 max=150 step=0.5')}${inp('jmp-sj2-h','Altezza 2° SJ (cm)','number',0,'min=0 max=80 step=0.1')}</div>
-    <button class="primary" onclick="calcJumpProfile()" style="width:100%;margin-top:8px">📊 Calcola profilo</button>
+
+    <div style="font-size:12px;font-weight:600;color:var(--tx2);margin:14px 0 6px;text-transform:uppercase">Punti Squat Jump (profilo Forza-Velocità)</div>
+    <p style="font-size:10px;color:var(--tx2);margin:0 0 8px">Aggiungi più salti SJ a carichi crescenti (es. 0%, 20%, 40%, 60% del peso corporeo) per costruire il profilo F-V completo con regressione lineare. Minimo 2 punti, consigliati 4-6 per maggiore precisione (García-Ramos et al. 2018; Samozino et al. 2008/2012).</p>
+    <div class="grid2" style="gap:10px">
+      ${inp('jmp-newload','Carico aggiunto (kg)','number',0,'min=0 max=150 step=0.5')}
+      ${inp('jmp-newh','Altezza SJ (cm)','number',0,'min=0 max=80 step=0.1')}
+    </div>
+    <button class="secondary" onclick="addJumpPoint()" style="width:100%;margin-bottom:10px">➕ Aggiungi punto al profilo</button>
+    <div id="jmp-points-list" style="margin-bottom:10px"></div>
+
+    <button class="primary" onclick="calcJumpProfile()" style="width:100%;margin-top:4px">📊 Calcola profilo completo</button>
   </div>
   <div>
     <div class="card" style="margin-bottom:12px">
       <div style="font-weight:700;font-size:13px;margin-bottom:10px;text-transform:uppercase">Bosco Index</div>
-      <div id="bosco-result"><p style="font-size:12px;color:var(--tx2)">Inserisci SJ e CMJ e calcola.</p></div>
+      <div id="bosco-result"><p style="font-size:12px;color:var(--tx2)">Inserisci almeno un punto SJ a carico 0 e l'altezza CMJ, poi calcola.</p></div>
     </div>
     <div class="card" style="margin-bottom:12px">
       <div style="font-weight:600;font-size:12px;margin-bottom:8px">Interpretazione Bosco Index</div>
@@ -1737,7 +1743,7 @@ R.lvp=()=>{
         ['= 33%',bdg('Valore ottimale','ok')],
         ['&gt; 33%',bdg('Buone caratteristiche neuromuscolari','ok')],
       ])}
-      <p style="font-size:10px;color:var(--tx3);margin-top:6px">Bosco Index = (CMJ−SJ)/SJ × 100. Misura il contributo del ciclo stiramento-accorciamento (SSC). Fonte: Bosco, C. (1983); Bosco et al. (1982) Eur J Appl Physiol.</p>
+      <p style="font-size:10px;color:var(--tx3);margin-top:6px">Bosco Index = (CMJ−SJ)/SJ × 100, calcolato sul punto SJ a carico zero. Misura il contributo del ciclo stiramento-accorciamento (SSC). Fonte: Bosco, C. (1983); Bosco et al. (1982) Eur J Appl Physiol.</p>
     </div>
     <div class="card" id="samozino-result-card" style="margin-bottom:12px;display:none">
       <div style="font-weight:700;font-size:13px;margin-bottom:10px;text-transform:uppercase">Profilo Forza-Velocità (Samozino)</div>
@@ -1751,13 +1757,14 @@ R.lvp=()=>{
   </div>
   <div class="card" style="margin-top:14px">
     <div style="font-weight:700;font-size:13px;margin-bottom:8px;text-transform:uppercase">Storico test SJ/CMJ</div>
-    ${tblClickable(['Data','Atleta','SJ (cm)','CMJ (cm)','Bosco %','F0 (N/kg)','V0 (m/s)','Pmax (W/kg)'],
+    ${tblClickable(['Data','Atleta','SJ (cm)','CMJ (cm)','Bosco %','N.Punti','F0 (N/kg)','V0 (m/s)','Pmax (W/kg)','R²'],
       (S.jumpTests||[]).slice().reverse().slice(0,15).map(j=>({
-        cells:[j.date,j.athleteName,j.sjHeight?.toFixed(1)||'—',j.cmjHeight?.toFixed(1)||'—',j.bosco!=null?bdg(j.bosco.toFixed(1)+'%',j.bosco>=33?'ok':'wa'):'—',j.F0PerKg?.toFixed(2)||'—',j.V0?.toFixed(2)||'—',j.PmaxPerKg?.toFixed(2)||'—'],
+        cells:[j.date,j.athleteName,j.sjHeight?.toFixed(1)||'—',j.cmjHeight?.toFixed(1)||'—',j.bosco!=null?bdg(j.bosco.toFixed(1)+'%',j.bosco>=33?'ok':'wa'):'—',j.points?.length||'—',j.F0PerKg?.toFixed(2)||'—',j.V0?.toFixed(2)||'—',j.PmaxPerKg?.toFixed(2)||'—',j.r2?.toFixed(3)||'—'],
         onclick:`viewJumpTestDetail('${j.id}')`
       })),'Nessun test SJ/CMJ registrato · clicca una riga per i dettagli')}
   </div>
-  </div>`;
+  </div>
+  `;
 };
 
 function switchLvpTab(tab){
@@ -1800,6 +1807,8 @@ INI.lvp=()=>{
   document.getElementById('lva')?.addEventListener('change',upP);
   upZ();upP();
   buildExSel('lvex','Squat Back (High Bar)');
+  window._jumpPoints = window._jumpPoints || [];
+  renderJumpPointsList();
   switchLvpTab('trad');
 };
 
@@ -1905,76 +1914,142 @@ function deleteLvpPoint(pointId){
   setTimeout(()=>switchLvpTab('trad'),20);
 }
 
+function addJumpPoint(){
+  const load = +document.getElementById('jmp-newload')?.value||0;
+  const h = +document.getElementById('jmp-newh')?.value||0;
+  if(h<=0){alert("Inserisci un'altezza di salto valida (cm)");return;}
+  window._jumpPoints = window._jumpPoints || [];
+  window._jumpPoints.push({id:rid(), load, height:h});
+  window._jumpPoints.sort((a,b)=>a.load-b.load);
+  document.getElementById('jmp-newload').value = 0;
+  document.getElementById('jmp-newh').value = 0;
+  renderJumpPointsList();
+}
+
+function removeJumpPoint(pointId){
+  if(!window._jumpPoints)return;
+  window._jumpPoints = window._jumpPoints.filter(p=>p.id!==pointId);
+  renderJumpPointsList();
+}
+
+function renderJumpPointsList(){
+  const el = document.getElementById('jmp-points-list');
+  if(!el)return;
+  const pts = window._jumpPoints||[];
+  if(!pts.length){
+    el.innerHTML = '<p style="font-size:11px;color:var(--tx2)">Nessun punto aggiunto. Aggiungi almeno 2 punti (es. 0kg e un carico) per calcolare il profilo F-V.</p>';
+    return;
+  }
+  el.innerHTML = `<div style="font-size:11px;font-weight:600;color:var(--tx2);margin-bottom:4px">Punti profilo (${pts.length})</div>` +
+    pts.map((p,i)=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 8px;background:var(--bg2);border-radius:6px;margin-bottom:3px;font-size:12px">
+      <span><strong>${p.load}kg</strong> → ${p.height}cm</span>
+      <button onclick="removeJumpPoint('${p.id}')" style="background:transparent;border:none;color:var(--erT);cursor:pointer;font-size:13px;padding:0">✕</button>
+    </div>`).join('');
+}
+
+function jumpToForceVelocityPoint(totalMassKg, jumpHeightM, hPOdist){
+  const g = 9.81;
+  const vTakeoff = Math.sqrt(2*g*jumpHeightM);
+  const Fmean = totalMassKg * ( g + (Math.pow(vTakeoff,2)/(2*hPOdist)) );
+  const Vmean = vTakeoff/2;
+  return {F:Fmean, V:Vmean};
+}
+
+function linearRegressionFV(points){
+  // points: array di {F, V}. Restituisce F0, V0, Pmax, slope, r2 tramite minimi quadrati su N punti.
+  const n = points.length;
+  const sumV = points.reduce((s,p)=>s+p.V,0);
+  const sumF = points.reduce((s,p)=>s+p.F,0);
+  const sumVF = points.reduce((s,p)=>s+p.V*p.F,0);
+  const sumV2 = points.reduce((s,p)=>s+p.V*p.V,0);
+  const denom = (n*sumV2 - sumV*sumV);
+  if(Math.abs(denom)<1e-9) return null;
+  const slope = (n*sumVF - sumV*sumF) / denom;
+  const intercept = (sumF - slope*sumV) / n;
+  if(slope>=0) return null; // pendenza deve essere negativa per un profilo F-v valido
+  const F0 = intercept;
+  const V0 = -intercept/slope;
+  const Pmax = (F0*V0)/4;
+  const meanF = sumF/n;
+  const ssTot = points.reduce((s,p)=>s+Math.pow(p.F-meanF,2),0);
+  const ssRes = points.reduce((s,p)=>s+Math.pow(p.F-(intercept+slope*p.V),2),0);
+  const r2 = ssTot>0 ? 1-(ssRes/ssTot) : 1;
+  return {F0, V0, Pmax, slope, intercept, r2};
+}
+
 function calcJumpProfile(){
   const g = id=>+document.getElementById(id)?.value||0;
   const mass = g('jmp-mass');
   const hPO = g('jmp-hpo');
-  const sjH = g('jmp-sj-h')/100;
   const cmjH = g('jmp-cmj-h')/100;
-  const sj2Load = g('jmp-sj2-load');
-  const sj2H = g('jmp-sj2-h')/100;
+  const pts = window._jumpPoints||[];
 
-  if(mass<=0||hPO<=0||sjH<=0||cmjH<=0){alert('Inserisci massa, push-off distance, altezza SJ e CMJ validi');return;}
+  if(mass<=0||hPO<=0){alert('Inserisci peso corporeo e push-off distance validi');return;}
+  if(pts.length<1){alert('Aggiungi almeno un punto SJ (idealmente a carico 0) prima di calcolare');return;}
 
-  // Bosco Index
-  const sjCm = sjH*100, cmjCm = cmjH*100;
-  const bosco = ((cmjCm-sjCm)/sjCm)*100;
-  const boscoLabel = bosco<33?'Lavoro strutturale necessario':bosco>33?'Buone caratteristiche neuromuscolari':'Valore ottimale';
-  const boscoType = bosco<33?'wa':'ok';
-
-  document.getElementById('bosco-result').innerHTML = `
-    <div class="grid2" style="gap:10px;margin-bottom:10px">
-      <div class="metric-card"><div class="metric-label">SJ Height</div><div class="metric-value">${sjCm.toFixed(1)} cm</div></div>
-      <div class="metric-card"><div class="metric-label">CMJ Height</div><div class="metric-value">${cmjCm.toFixed(1)} cm</div></div>
-    </div>
-    <div style="text-align:center;padding:14px;background:var(--bg2);border-radius:8px">
-      <div style="font-size:11px;color:var(--tx2)">Bosco Index</div>
-      <div style="font-size:32px;font-weight:700;color:${bosco<33?'var(--waT)':'var(--okT)'}">${bosco.toFixed(1)}%</div>
-      <div style="margin-top:6px">${bdg(boscoLabel,boscoType)}</div>
-    </div>
-  `;
-
-  // Samozino F-V Profile (metodo a 2 punti, García-Ramos validato)
-  function jumpToPoint(totalMass, jumpH, hPOdist){
-    const grav = 9.81;
-    const vTakeoff = Math.sqrt(2*grav*jumpH);
-    const Fmean = totalMass * ( grav + (Math.pow(vTakeoff,2)/(2*hPOdist)) );
-    const Vmean = vTakeoff/2;
-    return {F:Fmean, V:Vmean};
+  // Bosco Index: usa il punto SJ a carico più basso (idealmente 0kg) come riferimento
+  const baselinePoint = pts.find(p=>p.load===0) || pts[0];
+  const sjCm = baselinePoint.height;
+  let bosco = null;
+  if(cmjH>0 && sjCm>0){
+    const cmjCm = cmjH*100;
+    bosco = ((cmjCm-sjCm)/sjCm)*100;
+    const boscoLabel = bosco<33?'Lavoro strutturale necessario':bosco>33?'Buone caratteristiche neuromuscolari':'Valore ottimale';
+    const boscoType = bosco<33?'wa':'ok';
+    document.getElementById('bosco-result').innerHTML = `
+      <div class="grid2" style="gap:10px;margin-bottom:10px">
+        <div class="metric-card"><div class="metric-label">SJ Height (rif.)</div><div class="metric-value">${sjCm.toFixed(1)} cm</div></div>
+        <div class="metric-card"><div class="metric-label">CMJ Height</div><div class="metric-value">${cmjCm.toFixed(1)} cm</div></div>
+      </div>
+      <div style="text-align:center;padding:14px;background:var(--bg2);border-radius:8px">
+        <div style="font-size:11px;color:var(--tx2)">Bosco Index</div>
+        <div style="font-size:32px;font-weight:700;color:${bosco<33?'var(--waT)':'var(--okT)'}">${bosco.toFixed(1)}%</div>
+        <div style="margin-top:6px">${bdg(boscoLabel,boscoType)}</div>
+      </div>
+    `;
+  } else {
+    document.getElementById('bosco-result').innerHTML = "<p style=\"font-size:12px;color:var(--tx2)\">Inserisci anche l'altezza CMJ per calcolare il Bosco Index.</p>";
   }
 
+  // Profilo Samozino: regressione lineare su TUTTI i punti raccolti
   let samozinoData = null;
-  if(sj2Load>0 && sj2H>0){
-    const p1 = jumpToPoint(mass, sjH, hPO);
-    const p2 = jumpToPoint(mass+sj2Load, sj2H, hPO);
-    if(Math.abs(p2.V-p1.V)>0.01){
-      const k = (p1.F-p2.F)/(p2.V-p1.V);
-      const F0 = p1.F + k*p1.V;
-      const V0 = F0/k;
-      const Pmax = (F0*V0)/4;
-      samozinoData = {F0, V0, Pmax, F0PerKg:F0/mass, PmaxPerKg:Pmax/mass, k, p1, p2};
+  if(pts.length>=2){
+    const fvPoints = pts.map(p=>jumpToForceVelocityPoint(mass+p.load, p.height/100, hPO));
+    const reg = linearRegressionFV(fvPoints);
+    if(reg){
+      samozinoData = {
+        F0:reg.F0, V0:reg.V0, Pmax:reg.Pmax, r2:reg.r2, slope:reg.slope,
+        F0PerKg:reg.F0/mass, PmaxPerKg:reg.Pmax/mass,
+        rawPoints:fvPoints
+      };
     }
   }
 
   if(samozinoData){
     document.getElementById('samozino-result-card').style.display='';
     document.getElementById('samozino-chart-card').style.display='';
+    const r2Warning = samozinoData.r2<0.90 ? `<p style="font-size:11px;color:var(--erT);margin-top:6px">⚠️ R² basso (${samozinoData.r2.toFixed(3)}): i punti raccolti si discostano da una relazione lineare ideale. Verifica le misurazioni o aggiungi più punti per migliorare l'affidabilità del profilo.</p>` : '';
     document.getElementById('samozino-result').innerHTML = `
       <div class="grid2" style="gap:8px;margin-bottom:10px">
         ${mC('F0','<span>'+samozinoData.F0PerKg.toFixed(2)+'</span>','N/kg','var(--pu)')}
         ${mC('V0','<span>'+samozinoData.V0.toFixed(2)+'</span>','m/s')}
         ${mC('Pmax','<span>'+samozinoData.PmaxPerKg.toFixed(2)+'</span>','W/kg','#059669')}
-        ${mC('SFV (pendenza)','<span>'+(-samozinoData.k).toFixed(1)+'</span>','N/(m/s)/kg')}
+        ${mC('R²','<span>'+samozinoData.r2.toFixed(3)+'</span>','')}
       </div>
-      <p style="font-size:11px;color:var(--tx2);line-height:1.6">Profilo calcolato col metodo a 2 punti (corpo libero + carico ${sj2Load}kg), validato da García-Ramos et al. e Samozino et al. (2008, 2012). F0=forza teorica massima a v=0, V0=velocità teorica massima a F=0, Pmax=F0×V0/4.</p>
+      <p style="font-size:11px;color:var(--tx2);line-height:1.6">Profilo calcolato con regressione lineare ai minimi quadrati su ${pts.length} punti carico-velocità (Samozino et al. 2008, 2012; García-Ramos et al. 2018). F0=forza teorica massima a v=0, V0=velocità teorica massima a F=0, Pmax=F0×V0/4.</p>
+      ${r2Warning}
     `;
     document.getElementById('samozino-chart').innerHTML = renderSamozinoChart(samozinoData, mass);
   } else {
     document.getElementById('samozino-result-card').style.display='none';
     document.getElementById('samozino-chart-card').style.display='none';
+    if(pts.length>=2){
+      document.getElementById('samozino-result-card').style.display='';
+      document.getElementById('samozino-result').innerHTML = "<p style=\"font-size:12px;color:var(--erT)\">⚠️ I punti inseriti non permettono una regressione valida (verifica che la velocità diminuisca all'aumentare del carico).</p>";
+    }
   }
 
-  window._lastJumpTest = {mass, hPO, sjHeight:sjCm, cmjHeight:cmjCm, bosco, samozino:samozinoData};
+  window._lastJumpTest = {mass, hPO, sjHeight:sjCm, cmjHeight:cmjH>0?cmjH*100:null, bosco, samozino:samozinoData, points:[...pts]};
 
   const saveBtn = document.getElementById('jmp-save-btn');
   if(!saveBtn){
@@ -1997,11 +2072,8 @@ function renderSamozinoChart(data, mass){
   const xScale = v=>pad+(v/maxV)*(W-pad-15);
   const yScale = f=>H-pad-(f/maxF)*(H-pad-15);
 
-  // Profilo ottimale teorico: per semplicità didattica, mostriamo una retta con stesso Pmax ma SFV=valore medio popolazione atleti sport di squadra (~ -formula empirica)
-  // Nota: il vero "profilo ottimale" di Samozino richiede dati biomeccanici aggiuntivi (altezza salto target, hPO) - qui mostriamo
-  // un riferimento a slope neutro (45°-equivalente in scala) per permettere confronto visivo qualitativo
   const F0_opt = data.F0PerKg;
-  const V0_opt = data.PmaxPerKg*4/F0_opt; // mantiene stesso Pmax con SFV ottimale teorico (slope=-F0/V0 bilanciato)
+  const V0_opt = (data.PmaxPerKg*4)/F0_opt;
 
   let svg = `<svg viewBox="0 0 ${W} ${H}" style="width:100%;max-width:380px;height:auto">`;
   svg += `<line x1="${pad}" y1="${H-pad}" x2="${W-10}" y2="${H-pad}" stroke="var(--bd2)" stroke-width="1"/>`;
@@ -2011,8 +2083,15 @@ function renderSamozinoChart(data, mass){
 
   // Retta reale (rossa)
   svg += `<line x1="${xScale(0)}" y1="${yScale(data.F0PerKg)}" x2="${xScale(data.V0)}" y2="${yScale(0)}" stroke="#e31e24" stroke-width="2.5"/>`;
-  // Retta ottimale (verde, tratteggiata) - stesso Pmax, profilo bilanciato
+  // Retta ottimale teorica di riferimento (verde tratteggiata)
   svg += `<line x1="${xScale(0)}" y1="${yScale(F0_opt)}" x2="${xScale(V0_opt)}" y2="${yScale(0)}" stroke="#059669" stroke-width="2" stroke-dasharray="5,4" opacity="0.7"/>`;
+
+  // Punti reali misurati (uno per ogni salto raccolto)
+  if(data.rawPoints){
+    data.rawPoints.forEach(p=>{
+      svg += `<circle cx="${xScale(p.V)}" cy="${yScale(p.F/mass)}" r="3.5" fill="#e31e24" stroke="#fff" stroke-width="1"/>`;
+    });
+  }
 
   svg += `<circle cx="${xScale(0)}" cy="${yScale(data.F0PerKg)}" r="4" fill="#e31e24"/>`;
   svg += `<circle cx="${xScale(data.V0)}" cy="${yScale(0)}" r="4" fill="#e31e24"/>`;
@@ -2020,7 +2099,7 @@ function renderSamozinoChart(data, mass){
   svg += `<rect x="${W-130}" y="10" width="10" height="10" fill="#e31e24"/><text x="${W-115}" y="19" font-size="9" fill="var(--tx2)">Profilo reale</text>`;
   svg += `<rect x="${W-130}" y="25" width="10" height="10" fill="#059669"/><text x="${W-115}" y="34" font-size="9" fill="var(--tx2)">Profilo ottimale*</text>`;
   svg += '</svg>';
-  svg += '<p style="font-size:9px;color:var(--tx3);margin-top:4px">*Stima di riferimento a pari Pmax con bilanciamento F-V neutro. Per profilo ottimale individuale esatto è richiesta l\'altezza target del salto (Samozino et al. 2012).</p>';
+  svg += "<p style=\"font-size:9px;color:var(--tx3);margin-top:4px\">*Stima di riferimento a pari Pmax con bilanciamento F-V neutro. Per profilo ottimale individuale esatto è richiesta l'altezza target del salto (Samozino et al. 2012).</p>";
   return svg;
 }
 
@@ -2033,11 +2112,13 @@ function saveJumpTest(){
   S.jumpTests.push({
     id:rid(), athleteId:aid, athleteName:athName(aid), date,
     mass:d.mass, hPO:d.hPO, sjHeight:d.sjHeight, cmjHeight:d.cmjHeight, bosco:d.bosco,
+    points: d.points,
     F0:d.samozino?.F0||null, V0:d.samozino?.V0||null, Pmax:d.samozino?.Pmax||null,
-    F0PerKg:d.samozino?.F0PerKg||null, PmaxPerKg:d.samozino?.PmaxPerKg||null,
+    F0PerKg:d.samozino?.F0PerKg||null, PmaxPerKg:d.samozino?.PmaxPerKg||null, r2:d.samozino?.r2||null,
   });
   save();
   alert('✅ Test salvato!');
+  window._jumpPoints = [];
   render('lvp');
   setTimeout(()=>switchLvpTab('jump'),20);
 }
@@ -2049,19 +2130,24 @@ function viewJumpTestDetail(testId){
     <div class="grid2" style="gap:10px;margin-bottom:14px">
       <div><div style="font-size:11px;color:var(--tx2)">Atleta</div><div style="font-weight:700">${esc(j.athleteName)}</div></div>
       <div><div style="font-size:11px;color:var(--tx2)">Data</div><div style="font-weight:700">${j.date}</div></div>
-      <div><div style="font-size:11px;color:var(--tx2)">SJ Height</div><div style="font-weight:700">${j.sjHeight?.toFixed(1)} cm</div></div>
-      <div><div style="font-size:11px;color:var(--tx2)">CMJ Height</div><div style="font-weight:700">${j.cmjHeight?.toFixed(1)} cm</div></div>
-      <div><div style="font-size:11px;color:var(--tx2)">Bosco Index</div><div style="font-weight:700">${j.bosco?.toFixed(1)}%</div></div>
+      <div><div style="font-size:11px;color:var(--tx2)">SJ Height (rif.)</div><div style="font-weight:700">${j.sjHeight?.toFixed(1)||'—'} cm</div></div>
+      <div><div style="font-size:11px;color:var(--tx2)">CMJ Height</div><div style="font-weight:700">${j.cmjHeight?.toFixed(1)||'—'} cm</div></div>
+      <div><div style="font-size:11px;color:var(--tx2)">Bosco Index</div><div style="font-weight:700">${j.bosco?.toFixed(1)||'—'}%</div></div>
       <div><div style="font-size:11px;color:var(--tx2)">Peso corporeo</div><div style="font-weight:700">${j.mass} kg</div></div>
     </div>
+    ${j.points&&j.points.length?`<div style="margin-bottom:14px">
+      <div style="font-weight:700;font-size:12px;margin-bottom:6px;text-transform:uppercase">Punti profilo raccolti (${j.points.length})</div>
+      ${j.points.map(p=>`<div style="font-size:12px;padding:3px 0;border-bottom:.5px solid var(--bd)">${p.load}kg → ${p.height}cm</div>`).join('')}
+    </div>`:''}
     ${j.F0PerKg?`<div style="padding:12px;background:var(--bg2);border-radius:8px">
       <div style="font-weight:700;font-size:12px;margin-bottom:8px;text-transform:uppercase">Profilo Samozino</div>
       <div class="grid2" style="gap:8px">
         ${mC('F0','<span>'+j.F0PerKg.toFixed(2)+'</span>','N/kg')}
         ${mC('V0','<span>'+j.V0.toFixed(2)+'</span>','m/s')}
         ${mC('Pmax','<span>'+j.PmaxPerKg.toFixed(2)+'</span>','W/kg')}
+        ${mC('R²','<span>'+(j.r2?.toFixed(3)||'—')+'</span>','')}
       </div>
-    </div>`:'<p style="font-size:12px;color:var(--tx2)">Profilo Samozino non disponibile per questo test (manca il secondo punto caricato).</p>'}
+    </div>`:'<p style="font-size:12px;color:var(--tx2)">Profilo Samozino non disponibile per questo test (servono almeno 2 punti).</p>'}
   `;
   const footer = `<button class="secondary" style="color:var(--erT)" onclick="deleteJumpTest('${testId}')">🗑️ Elimina test</button>`;
   openMosyModal('Test SJ/CMJ', body, footer);
@@ -2075,6 +2161,7 @@ function deleteJumpTest(testId){
   render('lvp');
   setTimeout(()=>switchLvpTab('jump'),20);
 }
+
 
 
 // ══ GPS ══
