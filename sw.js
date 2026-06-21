@@ -1,4 +1,4 @@
-const CACHE = 'mosy-v7-multipoint-samozino';
+const CACHE = 'mosy-v8-charts-romei-i18n';
 const ASSETS = [
   './',
   './index.html',

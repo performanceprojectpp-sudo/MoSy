@@ -70,6 +70,10 @@ td{padding:6px 8px;border-bottom:.5px solid var(--bd);overflow:hidden;text-overf
       <div><div class="logo-text" style="color:#fff;font-size:14px;letter-spacing:1px">MoSy</div><div class="logo-ver" style="color:#e31e24;font-weight:700;letter-spacing:1px;font-size:9px">PERFORMANCE PROJECT</div></div>
     </div>
     <button class="nav-toggle" onclick="toggleSidebar()">&#9776;</button>
+    <div style="display:flex;gap:4px;justify-content:center;margin-bottom:6px">
+      <button id="lang-btn-it" onclick="setLang('it')" style="background:transparent;border:1px solid #333;border-radius:5px;padding:3px 7px;cursor:pointer;font-size:10px;font-weight:700;color:#fff;font-family:inherit">IT</button>
+      <button id="lang-btn-en" onclick="setLang('en')" style="background:transparent;border:1px solid #333;border-radius:5px;padding:3px 7px;cursor:pointer;font-size:10px;font-weight:700;color:#fff;font-family:inherit">EN</button>
+    </div>
     <nav id="nav-list"></nav>
     <div class="sb-footer" id="sb-footer" style="display:none">MoSy · Performance Project</div>
   </div>
@@ -142,48 +146,158 @@ const rid=()=>Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,6);
 const athName=id=>{const a=S.athletes.find(x=>x.id==id);return a?`${a.name} ${a.surname}`.trim():String(id);};
 
 // MODULES
+
+// ═══════════════════════════════════════════════════════════
+// SISTEMA MULTILINGUA (IT/EN)
+// ═══════════════════════════════════════════════════════════
+const LANG_KEY = 'mosy_lang';
+let currentLang = (()=>{ try{ return localStorage.getItem(LANG_KEY) || 'it'; }catch{ return 'it'; } })();
+
+const I18N = {
+  it: {
+    // Moduli / Menu
+    'mod.dashboard':'Dashboard','mod.athletes':'Atleti','mod.tlm_team':'TLM Team Sport','mod.tlm_resistance':'TLM Resistance',
+    'mod.hooper':'Hooper Index','mod.injury':'Injury Map','mod.vam':'VAM-MAS','mod.lvp':'LVP','mod.gps':'GPS Data',
+    'mod.trimp':'TRIMP','mod.zscore':'Z-score / ESA','mod.inol':'INOL','mod.weekly':'Weekly Plan','mod.macro':'Macro-Mesociclo',
+    'mod.nutrition':'Nutrition','mod.weight':'Peso Atleti','mod.export':'Esporta Report','mod.feedback':'Feedback',
+    'mod.functional':'Test Funzionali','mod.romei':'ROMEI Model',
+    'mod.dashboard.short':'Home','mod.athletes.short':'Atleti','mod.tlm_team.short':'TLM','mod.tlm_resistance.short':'WOD',
+    'mod.hooper.short':'Hooper','mod.injury.short':'Injury','mod.vam.short':'VAM','mod.lvp.short':'LVP','mod.gps.short':'GPS',
+    'mod.trimp.short':'TRIMP','mod.zscore.short':'Z-score','mod.inol.short':'INOL','mod.weekly.short':'Weekly','mod.macro.short':'Macro',
+    'mod.nutrition.short':'Nutri','mod.weight.short':'Peso','mod.export.short':'Export','mod.feedback.short':'Chat',
+    'mod.functional.short':'Test','mod.romei.short':'ROMEI',
+    // Dashboard
+    'dash.title':'Dashboard','dash.subtitle':'Panoramica sistema monitoraggio',
+    'dash.athletes':'Atleti','dash.weekload':'Carico sett.','dash.avgrpe':'RPE medio 7gg','dash.injuries7':'Infortuni 7gg',
+    'dash.avgvam':'VAM media','dash.tlmsessions':'Sessioni TLM','dash.recentsessions':'Ultime sessioni TLM','dash.hooperlatest':'Hooper Index — ultimo',
+    'dash.nodata':'Nessuna sessione inserita','dash.nohooperdata':'Nessun dato Hooper.','dash.acwrzones':'Zone ACWR',
+    // Bottoni / Azioni comuni
+    'btn.save':'Salva','btn.cancel':'Annulla','btn.delete':'Elimina','btn.edit':'Modifica','btn.add':'Aggiungi',
+    'btn.close':'Chiudi','btn.back':'Indietro','btn.confirm':'Conferma','btn.download':'Scarica',
+    // Atleti
+    'ath.title':'Gestione Atleti','ath.subtitle':'Scheda anagrafica e parametri fisiologici · Storico sessioni',
+    'ath.name':'Nome','ath.surname':'Cognome','ath.weight':'Peso (kg)','ath.height':'Altezza (m)','ath.age':'Età',
+    'ath.sex':'Sesso','ath.male':'Maschio','ath.female':'Femmina','ath.fcmax':'FC Max (bpm)','ath.fcrest':'FC Riposo (bpm)',
+    'ath.notes':'Note / Anamnesi','ath.new':'Nuovo atleta','ath.roster':'Roster','ath.tapEdit':'(tocca per modificare)',
+    'ath.none':'Nessun atleta.','ath.savechanges':'Salva modifiche','ath.addathlete':'Aggiungi atleta',
+    // Generici tabelle
+    'tbl.date':'Data','tbl.athlete':'Atleta','tbl.type':'Tipo','tbl.notes':'Note',
+  },
+  en: {
+    'mod.dashboard':'Dashboard','mod.athletes':'Athletes','mod.tlm_team':'TLM Team Sport','mod.tlm_resistance':'TLM Resistance',
+    'mod.hooper':'Hooper Index','mod.injury':'Injury Map','mod.vam':'VAM-MAS','mod.lvp':'LVP','mod.gps':'GPS Data',
+    'mod.trimp':'TRIMP','mod.zscore':'Z-score / ESA','mod.inol':'INOL','mod.weekly':'Weekly Plan','mod.macro':'Macro-Mesocycle',
+    'mod.nutrition':'Nutrition','mod.weight':'Athlete Weight','mod.export':'Export Report','mod.feedback':'Feedback',
+    'mod.functional':'Functional Tests','mod.romei':'ROMEI Model',
+    'mod.dashboard.short':'Home','mod.athletes.short':'Athletes','mod.tlm_team.short':'TLM','mod.tlm_resistance.short':'WOD',
+    'mod.hooper.short':'Hooper','mod.injury.short':'Injury','mod.vam.short':'VAM','mod.lvp.short':'LVP','mod.gps.short':'GPS',
+    'mod.trimp.short':'TRIMP','mod.zscore.short':'Z-score','mod.inol.short':'INOL','mod.weekly.short':'Weekly','mod.macro.short':'Macro',
+    'mod.nutrition.short':'Nutri','mod.weight.short':'Weight','mod.export.short':'Export','mod.feedback.short':'Chat',
+    'mod.functional.short':'Tests','mod.romei.short':'ROMEI',
+    'dash.title':'Dashboard','dash.subtitle':'Training load monitoring overview',
+    'dash.athletes':'Athletes','dash.weekload':'Weekly load','dash.avgrpe':'Avg RPE 7d','dash.injuries7':'Injuries 7d',
+    'dash.avgvam':'Avg VAM','dash.tlmsessions':'TLM Sessions','dash.recentsessions':'Recent TLM sessions','dash.hooperlatest':'Hooper Index — latest',
+    'dash.nodata':'No sessions recorded','dash.nohooperdata':'No Hooper data.','dash.acwrzones':'ACWR Zones',
+    'btn.save':'Save','btn.cancel':'Cancel','btn.delete':'Delete','btn.edit':'Edit','btn.add':'Add',
+    'btn.close':'Close','btn.back':'Back','btn.confirm':'Confirm','btn.download':'Download',
+    'ath.title':'Athlete Management','ath.subtitle':'Profile and physiological parameters · Session history',
+    'ath.name':'First name','ath.surname':'Last name','ath.weight':'Weight (kg)','ath.height':'Height (m)','ath.age':'Age',
+    'ath.sex':'Sex','ath.male':'Male','ath.female':'Female','ath.fcmax':'Max HR (bpm)','ath.fcrest':'Resting HR (bpm)',
+    'ath.notes':'Notes / Medical history','ath.new':'New athlete','ath.roster':'Roster','ath.tapEdit':'(tap to edit)',
+    'ath.none':'No athletes yet.','ath.savechanges':'Save changes','ath.addathlete':'Add athlete',
+    'tbl.date':'Date','tbl.athlete':'Athlete','tbl.type':'Type','tbl.notes':'Notes',
+  }
+};
+
+function t(key){
+  return (I18N[currentLang] && I18N[currentLang][key]) || (I18N.it[key]) || key;
+}
+
+function setLang(lang){
+  if(lang!=='it' && lang!=='en')return;
+  currentLang = lang;
+  try{ localStorage.setItem(LANG_KEY, lang); }catch(e){}
+  buildNav();
+  render(active);
+  updateLangButtonUI();
+}
+
+function updateLangButtonUI(){
+  const btnIt = document.getElementById('lang-btn-it');
+  const btnEn = document.getElementById('lang-btn-en');
+  if(btnIt) btnIt.style.opacity = currentLang==='it' ? '1' : '0.4';
+  if(btnEn) btnEn.style.opacity = currentLang==='en' ? '1' : '0.4';
+}
+
 const MODULES=[
-  {id:'dashboard',label:'Dashboard',icon:'⊞'},
-  {id:'athletes',label:'Atleti',icon:'👥'},
-  {id:'tlm_team',label:'TLM Team Sport',icon:'📊'},
-  {id:'tlm_resistance',label:'TLM Resistance',icon:'🏋️'},
-  {id:'hooper',label:'Hooper Index',icon:'😊'},
-  {id:'injury',label:'Injury Map',icon:'🩺'},
-  {id:'vam',label:'VAM-MAS',icon:'🏃'},
-  {id:'lvp',label:'LVP',icon:'📈'},
-  {id:'gps',label:'GPS Data',icon:'📡'},
-  {id:'trimp',label:'TRIMP',icon:'❤️'},
-  {id:'zscore',label:'Z-score / ESA',icon:'∑'},
-  {id:'inol',label:'INOL',icon:'⚡'},
-  {id:'weekly',label:'Weekly Plan',icon:'📅'},
-  {id:'macro',label:'Macro-Mesociclo',icon:'🗓️'},
-  {id:'nutrition',label:'Nutrition',icon:'🥗'},
-  {id:'weight',label:'Peso Atleti',icon:'⚖️'},
-  {id:'export',label:'Esporta Report',icon:'💾'},
-  {id:'feedback',label:'Feedback',icon:'💬'},
-  {id:'functional',label:'Test Funzionali',icon:'🩻'},
+  {id:'dashboard',get label(){return t('mod.dashboard');},icon:'⊞'},
+  {id:'athletes',get label(){return t('mod.athletes');},icon:'👥'},
+  {id:'tlm_team',get label(){return t('mod.tlm_team');},icon:'📊'},
+  {id:'tlm_resistance',get label(){return t('mod.tlm_resistance');},icon:'🏋️'},
+  {id:'hooper',get label(){return t('mod.hooper');},icon:'😊'},
+  {id:'injury',get label(){return t('mod.injury');},icon:'🩺'},
+  {id:'vam',get label(){return t('mod.vam');},icon:'🏃'},
+  {id:'lvp',get label(){return t('mod.lvp');},icon:'📈'},
+  {id:'gps',get label(){return t('mod.gps');},icon:'📡'},
+  {id:'trimp',get label(){return t('mod.trimp');},icon:'❤️'},
+  {id:'zscore',get label(){return t('mod.zscore');},icon:'∑'},
+  {id:'inol',get label(){return t('mod.inol');},icon:'⚡'},
+  {id:'weekly',get label(){return t('mod.weekly');},icon:'📅'},
+  {id:'macro',get label(){return t('mod.macro');},icon:'🗓️'},
+  {id:'nutrition',get label(){return t('mod.nutrition');},icon:'🥗'},
+  {id:'weight',get label(){return t('mod.weight');},icon:'⚖️'},
+  {id:'export',get label(){return t('mod.export');},icon:'💾'},
+  {id:'feedback',get label(){return t('mod.feedback');},icon:'💬'},
+  {id:'functional',get label(){return t('mod.functional');},icon:'🩻'},
+  {id:'romei',get label(){return t('mod.romei');},icon:'📐'},
 ];
 
 const BODY_ZONES=['Head','NeckFront','L_Shoulder','R_Shoulder','L_UpperTrap','R_UpperTrap','L_Arm','R_Arm','L_Elbow','R_Elbow','L_Wrist','R_Wrist','L_Hand','R_Hand','L_Chest','R_Chest','L_Abs','R_Abs','L_Hip','R_Hip','L_BackUp','R_BackUp','L_BackLo','R_BackLo','L_Quad','R_Quad','L_Knee','R_Knee','L_Ham','R_Ham','L_Glute','R_Glute','L_Calf','R_Calf','L_Tibia','R_Tibia','L_Ankle','R_Ankle','L_Add','R_Add'];
 
 // NAV
 let active='dashboard', sbOpen=false;
-const navEl=document.getElementById('nav-list');
-MODULES.forEach(m=>{
-  const b=document.createElement('button');
-  b.className='nav-btn'+(m.id===active?' active':'');
-  b.id='nb-'+m.id;
-  b.innerHTML=`<span class="nav-icon">${m.icon}</span><span class="nav-label">${m.label}</span>`;
-  b.onclick=()=>go(m.id);
-  navEl.appendChild(b);
-});
+function buildNav(){
+  const navEl=document.getElementById('nav-list');
+  if(!navEl)return;
+  navEl.innerHTML='';
+  MODULES.forEach(m=>{
+    const b=document.createElement('button');
+    b.className='nav-btn'+(m.id===active?' active':'');
+    b.id='nb-'+m.id;
+    b.innerHTML=`<span class="nav-icon">${m.icon}</span><span class="nav-label">${m.label}</span>`;
+    b.onclick=()=>go(m.id);
+    navEl.appendChild(b);
+  });
+  const mobNav=document.getElementById('mob-nav');
+  if(mobNav){
+    mobNav.innerHTML='';
+    const shortKeys={dashboard:'mod.dashboard.short',athletes:'mod.athletes.short',tlm_team:'mod.tlm_team.short',tlm_resistance:'mod.tlm_resistance.short',hooper:'mod.hooper.short',injury:'mod.injury.short',vam:'mod.vam.short',lvp:'mod.lvp.short',gps:'mod.gps.short',trimp:'mod.trimp.short',zscore:'mod.zscore.short',inol:'mod.inol.short',weekly:'mod.weekly.short',macro:'mod.macro.short',nutrition:'mod.nutrition.short',weight:'mod.weight.short',export:'mod.export.short',feedback:'mod.feedback.short',functional:'mod.functional.short',romei:'mod.romei.short'};
+    const icons = {dashboard:'⊞',athletes:'👥',tlm_team:'📊',tlm_resistance:'💪',hooper:'😊',injury:'🩺',vam:'🏃',lvp:'📈',gps:'📡',trimp:'❤️',zscore:'∑',inol:'⚡',weekly:'📅',macro:'🗓️',nutrition:'🥗',weight:'⚖️',export:'💾',feedback:'💬',functional:'🩻',romei:'📐'};
+    MODULES.forEach(m=>{
+      const btn = document.createElement('button');
+      btn.className = 'mob-nav-btn' + (m.id===active?' active':'');
+      btn.id = 'mbn-'+m.id;
+      btn.innerHTML = `<span>${icons[m.id]||'●'}</span>${t(shortKeys[m.id]||m.id)}`;
+      btn.onclick = ()=>{
+        document.querySelectorAll('.mob-nav-btn').forEach(b=>b.classList.remove('active'));
+        btn.classList.add('active');
+        go(m.id);
+      };
+      mobNav.appendChild(btn);
+    });
+  }
+}
+buildNav();
 
 function go(id){
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
   document.getElementById('nb-'+id)?.classList.add('active');
+  document.querySelectorAll('.mob-nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('mbn-'+id)?.classList.add('active');
   active=id;
   const el=document.getElementById('top-title');if(el){el.textContent=MODULES.find(x=>x.id===id)?.label||'';el.style.color='#fff';}
-  document.getElementById('athlete-count').textContent=S.athletes.length+' atleti';
+  const acEl=document.getElementById('athlete-count');
+  if(acEl)acEl.textContent=S.athletes.length+' '+(currentLang==='en'?'athletes':'atleti');
   if(sbOpen&&window.innerWidth<640)toggleSidebar();
   render(id);
 }
@@ -224,60 +338,64 @@ R.dashboard=()=>{
   const lh=S.hoopers.slice(-1)[0],hi=lh?['fatica','sonno','doms','stress','umore'].reduce((s,k)=>s+(lh[k]||0),0):null;
   const i7=S.injuries.filter(i=>(Date.now()-new Date(i.date))<7*86400000).length;
   const vam=S.vam.length?(S.vam.reduce((s,v)=>s+(v.vam||0),0)/S.vam.length).toFixed(1):'—';
-  return sH('MoSy Dashboard','Panoramica sistema monitoraggio')+
-  `<div class="grid4" style="margin-bottom:16px">${mC('Atleti',S.athletes.length)}${mC('Carico sett.',wL,'sRPE','var(--pu)')}${mC('RPE medio 7gg',rpe,'/10')}${mC('Infortuni 7gg',i7,'',i7>0?'var(--erT)':'')}${mC('VAM media',vam,'km/h','#059669')}${mC('Sessioni TLM',S.tlm.length)}</div>
+  const hooperLabelsEn={fatica:'Fatigue',sonno:'Sleep',doms:'DOMS',stress:'Stress',umore:'Mood'};
+  return sH(t('dash.title'),t('dash.subtitle'))+
+  `<div class="grid4" style="margin-bottom:16px">${mC(t('dash.athletes'),S.athletes.length)}${mC(t('dash.weekload'),wL,'sRPE','var(--pu)')}${mC(t('dash.avgrpe'),rpe,'/10')}${mC(t('dash.injuries7'),i7,'',i7>0?'var(--erT)':'')}${mC(t('dash.avgvam'),vam,'km/h','#059669')}${mC(t('dash.tlmsessions'),S.tlm.length)}</div>
   <div class="grid2">
-    <div class="card"><div style="font-weight:500;font-size:13px;margin-bottom:10px">Ultime sessioni TLM</div>
-    ${tbl(['Data','Atleta','Min','RPE','sRPE'],l7.slice().reverse().map(e=>[e.date,e.athleteName,e.duration,e.rpe,e.srpe]),'Nessuna sessione inserita')}</div>
-    <div class="card"><div style="font-weight:500;font-size:13px;margin-bottom:10px">Hooper Index — ultimo</div>
-    ${lh?`<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px">${['fatica','sonno','doms','stress','umore'].map(k=>`<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:.5px solid var(--bd);font-size:13px"><span style="color:var(--tx2);text-transform:capitalize">${k}</span><span style="font-weight:500;color:${lh[k]>=4?'var(--erT)':'var(--okT)'}">${lh[k]}</span></div>`).join('')}
-    <div style="padding:6px 0;font-weight:500;grid-column:1/-1">HI: <span style="font-size:20px;color:var(--pu)">${hi}/25</span> ${bdg(hi<=10?'Ottimale':hi<=15?'Attenzione':'Recupero',hi<=10?'ok':hi<=15?'wa':'er')}</div></div>`:`<p style="color:var(--tx2);font-size:12px">Nessun dato Hooper.</p>`}</div>
+    <div class="card"><div style="font-weight:500;font-size:13px;margin-bottom:10px">${t('dash.recentsessions')}</div>
+    ${tbl([t('tbl.date'),t('tbl.athlete'),'Min','RPE','sRPE'],l7.slice().reverse().map(e=>[e.date,e.athleteName,e.duration,e.rpe,e.srpe]),t('dash.nodata'))}</div>
+    <div class="card"><div style="font-weight:500;font-size:13px;margin-bottom:10px">${t('dash.hooperlatest')}</div>
+    ${lh?`<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px">${['fatica','sonno','doms','stress','umore'].map(k=>`<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:.5px solid var(--bd);font-size:13px"><span style="color:var(--tx2);text-transform:capitalize">${currentLang==='en'?hooperLabelsEn[k]:k}</span><span style="font-weight:500;color:${lh[k]>=4?'var(--erT)':'var(--okT)'}">${lh[k]}</span></div>`).join('')}
+    <div style="padding:6px 0;font-weight:500;grid-column:1/-1">HI: <span style="font-size:20px;color:var(--pu)">${hi}/25</span> ${bdg(hi<=10?(currentLang==='en'?'Optimal':'Ottimale'):hi<=15?(currentLang==='en'?'Caution':'Attenzione'):(currentLang==='en'?'Recovery':'Recupero'),hi<=10?'ok':hi<=15?'wa':'er')}</div></div>`:`<p style="color:var(--tx2);font-size:12px">${t('dash.nohooperdata')}</p>`}</div>
   </div>
-  <div class="card"><div style="font-weight:500;font-size:13px;margin-bottom:10px">Zone ACWR</div>
+  <div class="card"><div style="font-weight:500;font-size:13px;margin-bottom:10px">${t('dash.acwrzones')}</div>
   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px">
-  ${[['<0.8','Sotto-allenamento','in'],['0.8–1.3','Sweet Spot ✓','ok'],['1.3–1.5','Attenzione','wa'],['>1.5','Danger Zone!','er']].map(([r,l,c])=>`<div style="padding:10px;background:var(--bg2);border-radius:8px"><div style="font-size:15px;font-weight:500;margin-bottom:5px">${r}</div>${bdg(l,c)}</div>`).join('')}</div></div>`;
+  ${[['<0.8',currentLang==='en'?'Undertraining':'Sotto-allenamento','in'],['0.8–1.3','Sweet Spot ✓','ok'],['1.3–1.5',currentLang==='en'?'Caution':'Attenzione','wa'],['>1.5','Danger Zone!','er']].map(([r,l,c])=>`<div style="padding:10px;background:var(--bg2);border-radius:8px"><div style="font-size:15px;font-weight:500;margin-bottom:5px">${r}</div>${bdg(l,c)}</div>`).join('')}</div></div>`;
 };
 
 // ══ ATHLETES ══
 R.athletes=()=>{
   const editingId=window._editingAthId||null;
   const editAth=editingId?S.athletes.find(a=>a.id===editingId):null;
-  return `${sH('Gestione Atleti','Scheda anagrafica e parametri fisiologici · Storico sessioni')}
+  const editLabel=currentLang==='en'?'Edit':'Modifica';
+  const rosterLabel=currentLang==='en'?'athletes':'atleti';
+  return `${sH(t('ath.title'),t('ath.subtitle'))}
 <div class="grid2">
 <div class="card" id="ath-form-card" style="${editAth?'border:2px solid var(--pu)':''}">
 <div style="font-weight:500;font-size:13px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center">
-  <span>${editAth?`✏️ Modifica: ${editAth.name} ${editAth.surname}`:'Nuovo atleta'}</span>
-  ${editAth?'<button class="secondary" style="font-size:11px" onclick="cancelEditAth()">✕ Annulla</button>':''}
+  <span>${editAth?`✏️ ${editLabel}: ${editAth.name} ${editAth.surname}`:t('ath.new')}</span>
+  ${editAth?`<button class="secondary" style="font-size:11px" onclick="cancelEditAth()">✕ ${t('btn.cancel')}</button>`:''}
 </div>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:0 10px">
-${inp('an','Nome','text',editAth?editAth.name:'')}${inp('as','Cognome','text',editAth?editAth.surname:'')}
-${inp('aw','Peso (kg)','number',editAth?editAth.weight:70,'min=30 max=200 step=0.1')}${inp('ah','Altezza (m)','number',editAth?editAth.height:1.75,'min=1.0 max=2.2 step=0.01')}
-${inp('aa','Età','number',editAth?editAth.age:16,'min=10 max=60')}${sel('ax','Sesso',[{v:'M',l:'Maschio'},{v:'F',l:'Femmina'}],editAth?editAth.sex:'M')}
-${inp('af','FC Max (bpm)','number',editAth?editAth.fcmax:195,'min=150 max=220')}${inp('ar','FC Riposo (bpm)','number',editAth?editAth.rhr:55,'min=30 max=90')}
+${inp('an',t('ath.name'),'text',editAth?editAth.name:'')}${inp('as',t('ath.surname'),'text',editAth?editAth.surname:'')}
+${inp('aw',t('ath.weight'),'number',editAth?editAth.weight:70,'min=30 max=200 step=0.1')}${inp('ah',t('ath.height'),'number',editAth?editAth.height:1.75,'min=1.0 max=2.2 step=0.01')}
+${inp('aa',t('ath.age'),'number',editAth?editAth.age:16,'min=10 max=60')}${sel('ax',t('ath.sex'),[{v:'M',l:t('ath.male')},{v:'F',l:t('ath.female')}],editAth?editAth.sex:'M')}
+${inp('af',t('ath.fcmax'),'number',editAth?editAth.fcmax:195,'min=150 max=220')}${inp('ar',t('ath.fcrest'),'number',editAth?editAth.rhr:55,'min=30 max=90')}
 </div>
 <div style="display:flex;gap:10px;align-items:center;margin:0 0 10px;font-size:13px">BMI: <strong id="abmi">—</strong> <span id="abmi-b"></span></div>
-${inp('ano','Note / Anamnesi','text',editAth?(editAth.notes||''):'')}
+${inp('ano',t('ath.notes'),'text',editAth?(editAth.notes||''):'')}
 <div style="display:flex;gap:8px">
-<button class="primary" onclick="${editAth?`updateAth('${editAth.id}')`:'addAth()'}" style="flex:1">${editAth?'💾 Salva modifiche':'➕ Aggiungi atleta'}</button>
-${editAth?`<button class="secondary" style="color:var(--erT)" onclick="delAth('${editAth.id}')">🗑️ Elimina</button>`:''}
+<button class="primary" onclick="${editAth?`updateAth('${editAth.id}')`:'addAth()'}" style="flex:1">${editAth?'💾 '+t('ath.savechanges'):'➕ '+t('ath.addathlete')}</button>
+${editAth?`<button class="secondary" style="color:var(--erT)" onclick="delAth('${editAth.id}')">🗑️ ${t('btn.delete')}</button>`:''}
 </div>
 </div>
-<div class="card"><div style="font-weight:500;font-size:13px;margin-bottom:10px">Roster — ${S.athletes.length} atleti <span style="font-size:11px;color:var(--tx2);font-weight:400">(tocca per modificare)</span></div><div id="roster">${rosterHTML()}</div></div>
+<div class="card"><div style="font-weight:500;font-size:13px;margin-bottom:10px">${t('ath.roster')} — ${S.athletes.length} ${rosterLabel} <span style="font-size:11px;color:var(--tx2);font-weight:400">${t('ath.tapEdit')}</span></div><div id="roster">${rosterHTML()}</div></div>
 </div>
 ${editAth?renderAthHistory(editAth.id):''}`;
 };
 INI.athletes=()=>{['aw','ah'].forEach(id=>document.getElementById(id)?.addEventListener('input',updBMI));updBMI();};
 function updBMI(){const w=+document.getElementById('aw')?.value||0,h=+document.getElementById('ah')?.value||0;if(h>0){const b=(w/(h*h)).toFixed(1);document.getElementById('abmi').textContent=b;const n=+b;document.getElementById('abmi-b').innerHTML=bdg(n<18.5?'Sottopeso':n<25?'Normopeso':n<30?'Sovrappeso':'Obeso',n<18.5?'wa':n<25?'ok':'er');}}
 function rosterHTML(){
-  if(!S.athletes.length)return '<p style="color:var(--tx2);font-size:13px">Nessun atleta.</p>';
+  if(!S.athletes.length)return `<p style="color:var(--tx2);font-size:13px">${t('ath.none')}</p>`;
   const editingId=window._editingAthId;
+  const ageSuffix=currentLang==='en'?'y/o':'aa';
   return S.athletes.map(a=>{
     const b=a.height>0?(a.weight/(a.height*a.height)).toFixed(1):'—';
     const isEditing=a.id===editingId;
     return `<div onclick="startEditAth('${a.id}')" style="padding:9px 8px;border-bottom:.5px solid var(--bd);display:flex;justify-content:space-between;align-items:center;cursor:pointer;border-radius:6px;background:${isEditing?'var(--pu-l)':'transparent'};transition:background .15s">
       <div>
         <div style="font-weight:500;font-size:13px">${isEditing?'✏️ ':''}${a.name} ${a.surname}</div>
-        <div style="font-size:11px;color:var(--tx2)">${a.age}aa · ${a.weight}kg · ${Math.round(a.height*100)}cm · BMI ${b} · FCmax ${a.fcmax} · FCrep ${a.rhr}</div>
+        <div style="font-size:11px;color:var(--tx2)">${a.age}${ageSuffix} · ${a.weight}kg · ${Math.round(a.height*100)}cm · BMI ${b} · FCmax ${a.fcmax} · FCrest ${a.rhr}</div>
         ${a.notes?`<div style="font-size:11px;color:var(--tx3)">📝 ${esc(a.notes)}</div>`:''}
       </div>
       <span style="font-size:16px;color:var(--tx3);flex-shrink:0">›</span>
@@ -1814,16 +1932,35 @@ INI.lvp=()=>{
 
 function renderLvpChart(pts){
   if(pts.length<1)return '<p style="font-size:12px;color:var(--tx2)">Aggiungi punti per vedere il grafico.</p>';
-  const W=320,H=200,pad=36;
+  const W=340,H=220,padL=42,padB=30,padT=14,padR=14;
+  const chartW=W-padL-padR, chartH=H-padT-padB;
   const maxLoad=Math.max(...pts.map(p=>p.load))*1.15||100;
   const maxV=Math.max(...pts.map(p=>p.velocity))*1.15||2;
-  const xScale=l=>pad+(l/maxLoad)*(W-pad*1.5);
-  const yScale=v=>H-pad-(v/maxV)*(H-pad*1.5);
-  let svg=`<svg viewBox="0 0 ${W} ${H}" style="width:100%;max-width:380px;height:auto">`;
-  svg+=`<line x1="${pad}" y1="${H-pad}" x2="${W-10}" y2="${H-pad}" stroke="var(--bd2)" stroke-width="1"/>`;
-  svg+=`<line x1="${pad}" y1="${H-pad}" x2="${pad}" y2="10" stroke="var(--bd2)" stroke-width="1"/>`;
-  svg+=`<text x="${W/2}" y="${H-6}" font-size="9" fill="var(--tx2)" text-anchor="middle">Carico (kg)</text>`;
-  svg+=`<text x="10" y="10" font-size="9" fill="var(--tx2)">m/s</text>`;
+  const xScale=l=>padL+(l/maxLoad)*chartW;
+  const yScale=v=>padT+chartH-(v/maxV)*chartH;
+  let svg=`<svg viewBox="0 0 ${W} ${H}" style="width:100%;max-width:400px;height:auto">`;
+  // Assi principali
+  svg+=`<line x1="${padL}" y1="${padT+chartH}" x2="${padL+chartW}" y2="${padT+chartH}" stroke="var(--bd2)" stroke-width="1"/>`;
+  svg+=`<line x1="${padL}" y1="${padT+chartH}" x2="${padL}" y2="${padT}" stroke="var(--bd2)" stroke-width="1"/>`;
+  // Tick e valori numerici asse X (carico kg)
+  const xTicks=5;
+  for(let i=0;i<=xTicks;i++){
+    const val=(maxLoad*i/xTicks);
+    const x=xScale(val);
+    svg+=`<line x1="${x}" y1="${padT+chartH}" x2="${x}" y2="${padT+chartH+4}" stroke="var(--bd2)" stroke-width="1"/>`;
+    svg+=`<text x="${x}" y="${padT+chartH+15}" font-size="8" fill="var(--tx2)" text-anchor="middle">${val.toFixed(0)}</text>`;
+  }
+  // Tick e valori numerici asse Y (velocità m/s)
+  const yTicks=5;
+  for(let i=0;i<=yTicks;i++){
+    const val=(maxV*i/yTicks);
+    const y=yScale(val);
+    svg+=`<line x1="${padL-4}" y1="${y}" x2="${padL}" y2="${y}" stroke="var(--bd2)" stroke-width="1"/>`;
+    svg+=`<text x="${padL-7}" y="${y+3}" font-size="8" fill="var(--tx2)" text-anchor="end">${val.toFixed(2)}</text>`;
+  }
+  // Etichette assi
+  svg+=`<text x="${padL+chartW/2}" y="${H-4}" font-size="9" fill="var(--tx2)" text-anchor="middle">Carico (kg)</text>`;
+  svg+=`<text x="10" y="${padT+chartH/2}" font-size="9" fill="var(--tx2)" text-anchor="middle" transform="rotate(-90 10 ${padT+chartH/2})">Velocità (m/s)</text>`;
   if(pts.length>=2){
     const n=pts.length,sX=pts.reduce((s,p)=>s+p.load,0),sY=pts.reduce((s,p)=>s+p.velocity,0),sXY=pts.reduce((s,p)=>s+p.load*p.velocity,0),sX2=pts.reduce((s,p)=>s+p.load*p.load,0);
     const M=(n*sXY-sX*sY)/(n*sX2-sX*sX),B=(sY-M*sX)/n;
@@ -1832,6 +1969,7 @@ function renderLvpChart(pts){
   }
   pts.forEach(p=>{
     svg+=`<circle cx="${xScale(p.load)}" cy="${yScale(p.velocity)}" r="4" fill="var(--pu)" stroke="#fff" stroke-width="1"/>`;
+    svg+=`<text x="${xScale(p.load)}" y="${yScale(p.velocity)-8}" font-size="7" fill="var(--pu)" text-anchor="middle">${p.load}kg</text>`;
   });
   svg+='</svg>';
   return svg;
@@ -2066,20 +2204,39 @@ function calcJumpProfile(){
 }
 
 function renderSamozinoChart(data, mass){
-  const W=320,H=220,pad=40;
+  const W=340,H=240,padL=42,padB=32,padT=36,padR=14;
+  const chartW=W-padL-padR, chartH=H-padT-padB;
   const maxV = Math.max(data.V0, 5)*1.1;
   const maxF = Math.max(data.F0PerKg, 30)*1.1;
-  const xScale = v=>pad+(v/maxV)*(W-pad-15);
-  const yScale = f=>H-pad-(f/maxF)*(H-pad-15);
+  const xScale = v=>padL+(v/maxV)*chartW;
+  const yScale = f=>padT+chartH-(f/maxF)*chartH;
 
   const F0_opt = data.F0PerKg;
   const V0_opt = (data.PmaxPerKg*4)/F0_opt;
 
-  let svg = `<svg viewBox="0 0 ${W} ${H}" style="width:100%;max-width:380px;height:auto">`;
-  svg += `<line x1="${pad}" y1="${H-pad}" x2="${W-10}" y2="${H-pad}" stroke="var(--bd2)" stroke-width="1"/>`;
-  svg += `<line x1="${pad}" y1="${H-pad}" x2="${pad}" y2="10" stroke="var(--bd2)" stroke-width="1"/>`;
-  svg += `<text x="${W/2}" y="${H-8}" font-size="9" fill="var(--tx2)" text-anchor="middle">Velocità (m/s)</text>`;
-  svg += `<text x="8" y="12" font-size="9" fill="var(--tx2)">F (N/kg)</text>`;
+  let svg = `<svg viewBox="0 0 ${W} ${H}" style="width:100%;max-width:400px;height:auto">`;
+  // Assi principali
+  svg += `<line x1="${padL}" y1="${padT+chartH}" x2="${padL+chartW}" y2="${padT+chartH}" stroke="var(--bd2)" stroke-width="1"/>`;
+  svg += `<line x1="${padL}" y1="${padT+chartH}" x2="${padL}" y2="${padT}" stroke="var(--bd2)" stroke-width="1"/>`;
+  // Tick e valori numerici asse X (velocità m/s)
+  const xTicks=5;
+  for(let i=0;i<=xTicks;i++){
+    const val=(maxV*i/xTicks);
+    const x=xScale(val);
+    svg += `<line x1="${x}" y1="${padT+chartH}" x2="${x}" y2="${padT+chartH+4}" stroke="var(--bd2)" stroke-width="1"/>`;
+    svg += `<text x="${x}" y="${padT+chartH+15}" font-size="8" fill="var(--tx2)" text-anchor="middle">${val.toFixed(1)}</text>`;
+  }
+  // Tick e valori numerici asse Y (forza N/kg)
+  const yTicks=5;
+  for(let i=0;i<=yTicks;i++){
+    const val=(maxF*i/yTicks);
+    const y=yScale(val);
+    svg += `<line x1="${padL-4}" y1="${y}" x2="${padL}" y2="${y}" stroke="var(--bd2)" stroke-width="1"/>`;
+    svg += `<text x="${padL-7}" y="${y+3}" font-size="8" fill="var(--tx2)" text-anchor="end">${val.toFixed(0)}</text>`;
+  }
+  // Etichette assi
+  svg += `<text x="${padL+chartW/2}" y="${H-4}" font-size="9" fill="var(--tx2)" text-anchor="middle">Velocità (m/s)</text>`;
+  svg += `<text x="10" y="${padT+chartH/2}" font-size="9" fill="var(--tx2)" text-anchor="middle" transform="rotate(-90 10 ${padT+chartH/2})">F (N/kg)</text>`;
 
   // Retta reale (rossa)
   svg += `<line x1="${xScale(0)}" y1="${yScale(data.F0PerKg)}" x2="${xScale(data.V0)}" y2="${yScale(0)}" stroke="#e31e24" stroke-width="2.5"/>`;
@@ -2094,10 +2251,12 @@ function renderSamozinoChart(data, mass){
   }
 
   svg += `<circle cx="${xScale(0)}" cy="${yScale(data.F0PerKg)}" r="4" fill="#e31e24"/>`;
+  svg += `<text x="${xScale(0)+5}" y="${yScale(data.F0PerKg)-6}" font-size="8" fill="#e31e24" font-weight="700">F0=${data.F0PerKg.toFixed(1)}</text>`;
   svg += `<circle cx="${xScale(data.V0)}" cy="${yScale(0)}" r="4" fill="#e31e24"/>`;
+  svg += `<text x="${xScale(data.V0)}" y="${yScale(0)-10}" font-size="8" fill="#e31e24" font-weight="700" text-anchor="middle">V0=${data.V0.toFixed(2)}</text>`;
 
-  svg += `<rect x="${W-130}" y="10" width="10" height="10" fill="#e31e24"/><text x="${W-115}" y="19" font-size="9" fill="var(--tx2)">Profilo reale</text>`;
-  svg += `<rect x="${W-130}" y="25" width="10" height="10" fill="#059669"/><text x="${W-115}" y="34" font-size="9" fill="var(--tx2)">Profilo ottimale*</text>`;
+  svg += `<rect x="${W-130}" y="${padT-24}" width="10" height="10" fill="#e31e24"/><text x="${W-115}" y="${padT-15}" font-size="9" fill="var(--tx2)">Profilo reale</text>`;
+  svg += `<rect x="${W-130}" y="${padT-9}" width="10" height="10" fill="#059669"/><text x="${W-115}" y="${padT}" font-size="9" fill="var(--tx2)">Profilo ottimale*</text>`;
   svg += '</svg>';
   svg += "<p style=\"font-size:9px;color:var(--tx3);margin-top:4px\">*Stima di riferimento a pari Pmax con bilanciamento F-V neutro. Per profilo ottimale individuale esatto è richiesta l'altezza target del salto (Samozino et al. 2012).</p>";
   return svg;
@@ -3401,13 +3560,226 @@ INI.functional=()=>{
   updFtCategory();
 };
 
+R.romei=()=>{
+  return sH('ROMEI Model','Relation of Ongoing Monitored Exercise in Individual — Montini & Rocchi (2022)')+
+  `<div class="card" style="margin-bottom:14px">
+    <p style="font-size:12px;color:var(--tx2);line-height:1.7">
+      Il modello <b>ROMEI</b> (Montini, M. &amp; Rocchi, J.E., 2022, <i>Journal of Strength and Conditioning Research</i>, 36(9):2566–2572)
+      analizza la relazione individuale tra carico esterno (Energy Expenditure stimata, EE) e carico interno percepito (session-RPE)
+      attraverso una regressione lineare specifica per ciascun atleta. L'errore standard della regressione (SEE) definisce delle bande
+      di riferimento attorno alla retta: le sessioni che cadono <b>fuori dalle bande</b> rappresentano una risposta percepita anomala
+      rispetto al pattern abituale dell'atleta (possibile affaticamento, stress extra-sportivo, scarsa motivazione, o — all'opposto —
+      una sottostima dello sforzo). È un'analisi <b>individuale</b>, non comparativa tra atleti diversi.
+    </p>
+  </div>
+  <div class="grid2">
+  <div class="card">
+    ${asel('romei-ath')}
+    <div style="font-size:12px;font-weight:600;color:var(--tx2);margin:10px 0 6px;text-transform:uppercase">Stima Energy Expenditure (EE)</div>
+    <p style="font-size:11px;color:var(--tx2);margin-bottom:10px">EE è stimata dalle sessioni TLM salvate con formula MET standard: EE(kcal) = (MET × peso corporeo(kg) / 60) × durata(min). Il MET è derivato dall'RPE di sessione secondo equivalenze ACSM.</p>
+    <div id="romei-stats"></div>
+    <button class="primary" onclick="calcRomei()" style="width:100%;margin-top:10px">📐 Calcola modello ROMEI</button>
+  </div>
+  <div class="card">
+    <div style="font-weight:700;font-size:13px;margin-bottom:10px;text-transform:uppercase">Risultati regressione individuale</div>
+    <div id="romei-result"><p style="font-size:12px;color:var(--tx2)">Seleziona un atleta con almeno 5 sessioni TLM salvate e calcola il modello.</p></div>
+  </div>
+  </div>
+  <div class="card" style="margin-top:14px">
+    <div style="font-weight:700;font-size:13px;margin-bottom:8px;text-transform:uppercase">Grafico EE · sRPE con bande ±1 SEE / ±2 SEE</div>
+    <div id="romei-chart"></div>
+  </div>
+  <div class="card" style="margin-top:14px">
+    <div style="font-weight:700;font-size:13px;margin-bottom:8px;text-transform:uppercase">Dettaglio sessioni analizzate</div>
+    <div id="romei-sessions-table"></div>
+  </div>
+  <div class="card" style="margin-top:14px">
+    <div style="font-weight:600;font-size:12px;margin-bottom:8px">Interpretazione pratica</div>
+    <div style="font-size:11px;color:var(--tx2);line-height:1.8">
+      <b>Dentro ±1 SEE:</b> risposta percepita coerente con il pattern abituale dell'atleta.<br>
+      <b>Tra ±1 e ±2 SEE:</b> scostamento moderato, da monitorare nelle sessioni successive.<br>
+      <b>Oltre ±2 SEE (sopra la retta):</b> sRPE molto più alto del previsto — possibile affaticamento, stress, recupero insufficiente.<br>
+      <b>Oltre ±2 SEE (sotto la retta):</b> sRPE molto più basso del previsto — possibile sottostima dello sforzo o ottimo stato di forma.<br>
+      <b>Pendenza della retta (slope) nel tempo:</b> un aumento progressivo della pendenza tra microcicli (come osservato nello studio originale) può indicare un incremento della percezione dello sforzo a parità di carico esterno, utile segnale di fatica accumulata.
+    </div>
+  </div>`;
+};
+
+INI.romei=()=>{
+  document.getElementById('romei-ath')?.addEventListener('change',updRomeiStats);
+  updRomeiStats();
+};
+
+function estimateMET(rpe){
+  if(rpe<=2) return 2.5;
+  if(rpe<=4) return 4.5;
+  if(rpe<=6) return 7;
+  if(rpe<=8) return 9;
+  return 11;
+}
+
+function estimateSessionEE(massKg, durationMin, rpe){
+  const met = estimateMET(rpe);
+  return (met * massKg / 60) * durationMin;
+}
+
+function updRomeiStats(){
+  const aid = document.getElementById('romei-ath')?.value;
+  const athlete = S.athletes.find(a=>a.id===aid);
+  const sessions = S.tlm.filter(e=>e.athleteId===aid && e.duration>0 && e.rpe>0);
+  const el = document.getElementById('romei-stats');
+  if(el){
+    el.innerHTML = `<div class="grid2" style="gap:8px">
+      ${mC('Sessioni disponibili',sessions.length)}
+      ${mC('Peso corporeo',athlete?athlete.weight+'kg':'—')}
+    </div>
+    ${sessions.length<5?`<p style="font-size:11px;color:var(--erT);margin-top:8px">⚠️ Servono almeno 5 sessioni con durata e RPE per una regressione affidabile (attualmente ${sessions.length}).</p>`:''}`;
+  }
+}
+
+function linearRegressionSEE(points, xKey, yKey){
+  const n = points.length;
+  const sumX = points.reduce((s,p)=>s+p[xKey],0);
+  const sumY = points.reduce((s,p)=>s+p[yKey],0);
+  const sumXY = points.reduce((s,p)=>s+p[xKey]*p[yKey],0);
+  const sumX2 = points.reduce((s,p)=>s+p[xKey]*p[xKey],0);
+  const denom = (n*sumX2 - sumX*sumX);
+  if(Math.abs(denom)<1e-9) return null;
+  const slope = (n*sumXY - sumX*sumY) / denom;
+  const intercept = (sumY - slope*sumX) / n;
+  const predicted = points.map(p=>slope*p[xKey]+intercept);
+  const residuals = points.map((p,i)=>p[yKey]-predicted[i]);
+  const ssRes = residuals.reduce((s,r)=>s+r*r,0);
+  const see = n>2 ? Math.sqrt(ssRes/(n-2)) : 0;
+  const meanY = sumY/n;
+  const ssTot = points.reduce((s,p)=>s+Math.pow(p[yKey]-meanY,2),0);
+  const r2 = ssTot>0 ? 1-(ssRes/ssTot) : 1;
+  return {slope, intercept, see, r2, residuals};
+}
+
+function calcRomei(){
+  const aid = document.getElementById('romei-ath')?.value;
+  const athlete = S.athletes.find(a=>a.id===aid);
+  if(!athlete){alert('Seleziona un atleta');return;}
+  const sessions = S.tlm.filter(e=>e.athleteId===aid && e.duration>0 && e.rpe>0)
+    .sort((a,b)=>a.date.localeCompare(b.date));
+
+  if(sessions.length<5){
+    document.getElementById('romei-result').innerHTML = '<p style="font-size:12px;color:var(--erT)">Servono almeno 5 sessioni con durata e RPE registrati per questo atleta.</p>';
+    document.getElementById('romei-chart').innerHTML = '';
+    document.getElementById('romei-sessions-table').innerHTML = '';
+    return;
+  }
+
+  const points = sessions.map(e=>({
+    date: e.date,
+    ee: estimateSessionEE(athlete.weight, e.duration, e.rpe),
+    srpe: e.srpe,
+    type: e.type||'—'
+  }));
+
+  const reg = linearRegressionSEE(points, 'ee', 'srpe');
+  if(!reg){
+    document.getElementById('romei-result').innerHTML = '<p style="font-size:12px;color:var(--erT)">Impossibile calcolare la regressione (dati insufficientemente variabili).</p>';
+    return;
+  }
+
+  document.getElementById('romei-result').innerHTML = `
+    <div class="grid2" style="gap:8px;margin-bottom:10px">
+      ${mC('Slope (m)','<span>'+reg.slope.toFixed(3)+'</span>','sRPE/kcal','var(--pu)')}
+      ${mC('Intercetta','<span>'+reg.intercept.toFixed(1)+'</span>','')}
+      ${mC('SEE','<span>'+reg.see.toFixed(1)+'</span>','sRPE')}
+      ${mC('R²','<span>'+reg.r2.toFixed(3)+'</span>','')}
+    </div>
+    <p style="font-size:11px;color:var(--tx2);line-height:1.6">Equazione: sRPE = ${reg.slope.toFixed(3)} × EE + ${reg.intercept.toFixed(1)}. ${reg.r2<0.5?'⚠️ R² basso: la relazione individuale è debole, interpretare le bande con cautela.':'Relazione individuale solida (R²≥0.5).'}</p>
+  `;
+
+  document.getElementById('romei-chart').innerHTML = renderRomeiChart(points, reg);
+
+  const outliers = points.map((p,i)=>{
+    const predicted = reg.slope*p.ee + reg.intercept;
+    const residual = p.srpe - predicted;
+    const z = reg.see>0 ? residual/reg.see : 0;
+    return {...p, predicted, residual, z};
+  });
+
+  document.getElementById('romei-sessions-table').innerHTML = tbl(
+    ['Data','Tipo','EE (kcal)','sRPE reale','sRPE atteso','Scostamento (z)','Stato'],
+    outliers.slice().reverse().map(o=>{
+      const absZ = Math.abs(o.z);
+      const status = absZ>2 ? bdg(o.z>0?'⚠️ Molto sopra atteso':'⚠️ Molto sotto atteso','er')
+        : absZ>1 ? bdg('Moderato scostamento','wa')
+        : bdg('Nella norma','ok');
+      return [o.date, o.type, o.ee.toFixed(0), o.srpe, o.predicted.toFixed(0), o.z.toFixed(2), status];
+    })
+  );
+}
+
+function renderRomeiChart(points, reg){
+  const W=360,H=240,padL=46,padB=30,padT=14,padR=14;
+  const chartW=W-padL-padR, chartH=H-padT-padB;
+  const maxEE = Math.max(...points.map(p=>p.ee))*1.1;
+  const maxSrpe = Math.max(...points.map(p=>p.srpe), reg.slope*maxEE+reg.intercept+2*reg.see)*1.1;
+  const xScale = ee=>padL+(ee/maxEE)*chartW;
+  const yScale = srpe=>padT+chartH-(Math.max(0,srpe)/maxSrpe)*chartH;
+
+  let svg = `<svg viewBox="0 0 ${W} ${H}" style="width:100%;max-width:420px;height:auto">`;
+  svg += `<line x1="${padL}" y1="${padT+chartH}" x2="${padL+chartW}" y2="${padT+chartH}" stroke="var(--bd2)" stroke-width="1"/>`;
+  svg += `<line x1="${padL}" y1="${padT+chartH}" x2="${padL}" y2="${padT}" stroke="var(--bd2)" stroke-width="1"/>`;
+  for(let i=0;i<=5;i++){
+    const val=(maxEE*i/5);
+    const x=xScale(val);
+    svg += `<line x1="${x}" y1="${padT+chartH}" x2="${x}" y2="${padT+chartH+4}" stroke="var(--bd2)" stroke-width="1"/>`;
+    svg += `<text x="${x}" y="${padT+chartH+15}" font-size="8" fill="var(--tx2)" text-anchor="middle">${val.toFixed(0)}</text>`;
+  }
+  for(let i=0;i<=5;i++){
+    const val=(maxSrpe*i/5);
+    const y=yScale(val);
+    svg += `<line x1="${padL-4}" y1="${y}" x2="${padL}" y2="${y}" stroke="var(--bd2)" stroke-width="1"/>`;
+    svg += `<text x="${padL-7}" y="${y+3}" font-size="8" fill="var(--tx2)" text-anchor="end">${val.toFixed(0)}</text>`;
+  }
+  svg += `<text x="${padL+chartW/2}" y="${H-4}" font-size="9" fill="var(--tx2)" text-anchor="middle">EE stimata (kcal)</text>`;
+  svg += `<text x="10" y="${padT+chartH/2}" font-size="9" fill="var(--tx2)" text-anchor="middle" transform="rotate(-90 10 ${padT+chartH/2})">sRPE (UA)</text>`;
+
+  // Bande ±2 SEE (più chiare) e ±1 SEE
+  const x1=0, x2=maxEE;
+  const yLine1=reg.slope*x1+reg.intercept, yLine2=reg.slope*x2+reg.intercept;
+  const ySee2Hi1=yLine1+2*reg.see, ySee2Hi2=yLine2+2*reg.see;
+  const ySee2Lo1=yLine1-2*reg.see, ySee2Lo2=yLine2-2*reg.see;
+  const ySee1Hi1=yLine1+reg.see, ySee1Hi2=yLine2+reg.see;
+  const ySee1Lo1=yLine1-reg.see, ySee1Lo2=yLine2-reg.see;
+
+  // Banda ±2 SEE
+  svg += `<polygon points="${xScale(x1)},${yScale(ySee2Hi1)} ${xScale(x2)},${yScale(ySee2Hi2)} ${xScale(x2)},${yScale(ySee2Lo2)} ${xScale(x1)},${yScale(ySee2Lo1)}" fill="var(--pu)" opacity="0.08"/>`;
+  // Banda ±1 SEE
+  svg += `<polygon points="${xScale(x1)},${yScale(ySee1Hi1)} ${xScale(x2)},${yScale(ySee1Hi2)} ${xScale(x2)},${yScale(ySee1Lo2)} ${xScale(x1)},${yScale(ySee1Lo1)}" fill="var(--pu)" opacity="0.15"/>`;
+
+  // Retta di regressione
+  svg += `<line x1="${xScale(x1)}" y1="${yScale(yLine1)}" x2="${xScale(x2)}" y2="${yScale(yLine2)}" stroke="var(--pu)" stroke-width="2"/>`;
+
+  // Punti sessione, colorati per outlier
+  points.forEach(p=>{
+    const predicted = reg.slope*p.ee+reg.intercept;
+    const z = reg.see>0 ? (p.srpe-predicted)/reg.see : 0;
+    const color = Math.abs(z)>2 ? '#e31e24' : Math.abs(z)>1 ? '#f59e0b' : '#059669';
+    svg += `<circle cx="${xScale(p.ee)}" cy="${yScale(p.srpe)}" r="4" fill="${color}" stroke="#fff" stroke-width="1"/>`;
+  });
+
+  svg += `<rect x="${W-150}" y="10" width="10" height="10" fill="#059669"/><text x="${W-135}" y="19" font-size="8" fill="var(--tx2)">Nella norma</text>`;
+  svg += `<rect x="${W-150}" y="23" width="10" height="10" fill="#f59e0b"/><text x="${W-135}" y="32" font-size="8" fill="var(--tx2)">Scostamento moderato</text>`;
+  svg += `<rect x="${W-150}" y="36" width="10" height="10" fill="#e31e24"/><text x="${W-135}" y="45" font-size="8" fill="var(--tx2)">Fuori ±2 SEE</text>`;
+  svg += '</svg>';
+  return svg;
+}
+
 // PWA
 let deferredPrompt=null;
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;document.getElementById('pwa-banner').style.display='block';});
 function installPWA(){if(deferredPrompt){deferredPrompt.prompt();deferredPrompt.userChoice.then(()=>{deferredPrompt=null;document.getElementById('pwa-banner').style.display='none';});}}
 
 // INIT
-document.getElementById('athlete-count').textContent=S.athletes.length+' atleti';
+document.getElementById('athlete-count').textContent=S.athletes.length+' '+(currentLang==='en'?'athletes':'atleti');
+updateLangButtonUI();
 render('dashboard');
 
 function buildExSel(id, selVal) {
@@ -3652,28 +4024,7 @@ function tblClickable(heads, rowsWithHandlers, emptyMsg){
 </script>
 
 <div class="mob-nav" id="mob-nav"></div>
-<script>
-// Build mobile bottom nav
-const mobNav = document.getElementById('mob-nav');
-if(mobNav){
-  const shortLabels = {dashboard:'Home',athletes:'Atleti',tlm_team:'TLM',tlm_resistance:'WOD',hooper:'Hooper',injury:'Injury',vam:'VAM',lvp:'LVP',gps:'GPS',trimp:'TRIMP',zscore:'Z-score',inol:'INOL',weekly:'Weekly',macro:'Macro',nutrition:'Nutri',weight:'Peso',export:'Export',feedback:'Chat',functional:'Test'};
-  const icons = {dashboard:'⊞',athletes:'👥',tlm_team:'📊',tlm_resistance:'💪',hooper:'😊',injury:'🩺',vam:'🏃',lvp:'📈',gps:'📡',trimp:'❤️',zscore:'∑',inol:'⚡',weekly:'📅',macro:'🗓️',nutrition:'🥗',weight:'⚖️',export:'💾',feedback:'💬',functional:'🩻'};
-  MODULES.forEach(m=>{
-    const btn = document.createElement('button');
-    btn.className = 'mob-nav-btn' + (m.id==='dashboard'?' active':'');
-    btn.id = 'mbn-'+m.id;
-    btn.innerHTML = `<span>${icons[m.id]||'●'}</span>${shortLabels[m.id]||m.label}`;
-    btn.onclick = ()=>{
-      document.querySelectorAll('.mob-nav-btn').forEach(b=>b.classList.remove('active'));
-      btn.classList.add('active');
-      go(m.id);
-    };
-    mobNav.appendChild(btn);
-  });
-}
-// Sync mobile nav with sidebar
-const origGo = go;
-</script>
+
 
 <script>
 if('serviceWorker' in navigator){
