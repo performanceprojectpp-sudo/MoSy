@@ -379,7 +379,7 @@ const DOM_EN = {
   'Tabella di relazione %VAM · %VO2max · %HRR':'%MAS · %VO2max · %HRR relation table',
   // VAM Swain nota
   'Basata su Swain & Leutholtz (1997, Med Sci Sports Exerc) che dimostra come %HRR ≈ %VO2max (relazione quasi 1:1),':'Based on Swain & Leutholtz (1997, Med Sci Sports Exerc) showing %HRR ≈ %VO2max (nearly 1:1 relationship),',
-  'a differenza di %FCmax che sovrastima sistematicamente l\'intensità metabolica reale (specie a basse intensità).':'unlike %HRmax which systematically overestimates real metabolic intensity (especially at low intensities)',
+  'a differenza di %FCmax che sovrastima sistematicamente l\'intensità metabolica reale (specie a basse intensità).':'unlike %HRmax which systematically overestimates real metabolic intensity (especially at low intensities).',
   'Il %VAM è qui collegato a %VO2max secondo la relazione lineare VO2 = 3.5 × velocità (ml/kg/min), validata da Léger & Mercier (1984).':'%MAS is linked to %VO2max via the linear relationship VO2 = 3.5 × velocity (ml/kg/min), validated by Léger & Mercier (1984).',
   '% FCmax stimata con formula di popolazione (Swain et al. 1994, ACSM): %FCmax = 0.64×%HRR + 37. Per la prescrizione individuale usa sempre la colonna %HRR (Karvonen).':'Estimated %HRmax using population formula (Swain et al. 1994, ACSM): %HRmax = 0.64×%HRR + 37. For individual prescription always use the %HRR (Karvonen) column.',
   // Vdec
@@ -618,7 +618,7 @@ const DOM_EN = {
   "Valuta forza e controllo degli abduttori d'anca (gluteo medio). L'atleta sta in appoggio monopodalico per 30 secondi; positivo se il bacino cade sul lato non in appoggio (segno di Trendelenburg) o se compensa con inclinazione del tronco.":'Evaluates hip abductor strength and control (gluteus medius). Athlete stands on one leg for 30s; positive if pelvis drops on non-weight-bearing side (Trendelenburg sign) or compensates with trunk lean.',
   'Fonte: Hardcastle & Nade (1985) J Bone Joint Surg; Bird & Fell (2014) Physiother Res Int':'Source: Hardcastle & Nade (1985) J Bone Joint Surg; Bird & Fell (2014) Physiother Res Int',
   'Inserisci un test funzionale non presente nell\'elenco predefinito.':'Enter a functional test not in the predefined list.',
-  'Questi test sono strumenti di screening orientativi, non diagnostici. La letteratura scientifica recente (Shanmugaraj et al. 2020; Reiman et al. 2015) evidenzia limiti di sensibilità/specificità per i test ortopedici (es. FADDIR/FABER) e cautela nell\'uso predittivo puro di FMS e Y-Balance Test (correlazione FMS-injury contestata in studi più recenti). Un risultato positivo o uno score basso NON costituisce diagnosi: in presenza di dolore o sospetto clinico, indirizzare sempre l\'atleta a uno specialista (medico ortopedico, fisioterapista).':'These tests are indicative screening tools, not diagnostic instruments. Recent literature (Shanmugaraj et al. 2020; Reiman et al. 2015) highlights sensitivity/specificity limitations for orthopaedic tests (e.g. FADDIR/FABER) and caution in purely predictive use of FMS and Y-Balance Test. A positive result or low score does NOT constitute a diagnosis: in the presence of pain or clinical suspicion, always refer the athlete to a specialist.',
+  'Questi test sono strumenti di screening orientativi, non diagnostici. La letteratura scientifica recente (Shanmugaraj et al. 2020; Reiman et al. 2015) evidenzia limiti di sensibilit\u00e0/specificit\u00e0 per i test ortopedici (es. FADDIR/FABER) e cautela nell\'uso predittivo puro di FMS e Y-Balance Test (correlazione FMS-injury contestata in studi pi\u00f9 recenti). Un risultato positivo o uno score basso NON costituisce diagnosi: in presenza di dolore o sospetto clinico, indirizzare sempre l\'atleta a uno specialista (medico ortopedico, fisioterapista).':'These tests are indicative screening tools, not diagnostic instruments. Recent literature (Shanmugaraj et al. 2020; Reiman et al. 2015) highlights sensitivity/specificity limitations for orthopaedic tests (e.g. FADDIR/FABER) and caution in purely predictive use of FMS and Y-Balance Test. A positive result or low score does NOT constitute a diagnosis: in the presence of pain or clinical suspicion, always refer the athlete to a specialist.',
   // ROMEI scientific
   'Il modello ROMEI (Montini, M. & Rocchi, J.E., 2022, Journal of Strength and Conditioning Research, 36(9):2566–2572)':'The ROMEI model (Montini, M. & Rocchi, J.E., 2022, Journal of Strength and Conditioning Research, 36(9):2566–2572)',
   'analizza la relazione individuale tra carico esterno (Energy Expenditure stimata, EE) e carico interno percepito (session-RPE)':'analyses the individual relationship between external load (estimated Energy Expenditure, EE) and perceived internal load (session-RPE)',
@@ -877,7 +877,7 @@ ${editAth?`<button class="secondary" style="color:var(--erT)" onclick="delAth('$
 ${editAth?renderAthHistory(editAth.id):''}`;
 };
 INI.athletes=()=>{['aw','ah'].forEach(id=>document.getElementById(id)?.addEventListener('input',updBMI));updBMI();};
-function updBMI(){const w=+document.getElementById('aw')?.value||0,h=+document.getElementById('ah')?.value||0;if(h>0){const b=(w/(h*h)).toFixed(1);document.getElementById('abmi').textContent=b;const n=+b;document.getElementById('abmi-b').innerHTML=bdg(n<18.5?'Sottopeso':n<25?'Normopeso':n<30?'Sovrappeso':'Obeso',n<18.5?'wa':n<25?'ok':'er');}}
+function updBMI(){const w=+document.getElementById('aw')?.value||0,h=+document.getElementById('ah')?.value||0;if(h>0){const b=(w/(h*h)).toFixed(1);document.getElementById('abmi').textContent=b;const n=+b;const _enBMI=currentLang==='en';document.getElementById('abmi-b').innerHTML=bdg(n<18.5?(_enBMI?'Underweight':'Sottopeso'):n<25?(_enBMI?'Normal weight':'Normopeso'):n<30?(_enBMI?'Overweight':'Sovrappeso'):(_enBMI?'Obese':'Obeso'),n<18.5?'wa':n<25?'ok':'er');}}
 function rosterHTML(){
   if(!S.athletes.length)return `<p style="color:var(--tx2);font-size:13px">${t('ath.none')}</p>`;
   const editingId=window._editingAthId;
@@ -924,13 +924,13 @@ function renderAthHistory(athId){
   const fbCount=S.feedbacks.filter(e=>e.athleteId===athId).length;
   const lastSessions=S.tlm.filter(e=>e.athleteId===athId).sort((x,y)=>y.date.localeCompare(x.date)).slice(0,8);
   return `<div class="card" style="margin-top:14px">
-    <div style="font-weight:700;font-size:14px;margin-bottom:12px;text-transform:uppercase;letter-spacing:.5px">📂 Storico completo — ${a.name} ${a.surname}</div>
+    <div style="font-weight:700;font-size:14px;margin-bottom:12px;text-transform:uppercase;letter-spacing:.5px">📂 ${currentLang==='en'?'Full history':'Storico completo'} — ${a.name} ${a.surname}</div>
     <div class="grid4" style="margin-bottom:14px">
-      ${mC('Sessioni TLM',tlmCount)}${mC('Hooper Index',hooperCount)}${mC('Test VAM',vamCount)}${mC('Sessioni GPS',gpsCount)}
-      ${mC('Infortuni',injCount,'',injCount>0?'var(--erT)':'')}${mC('Pesate',wCount)}${mC('Feedback',fbCount)}${mC('ID Atleta',athId.slice(0,8))}
+      ${mC(currentLang==='en'?'TLM Sessions':'Sessioni TLM',tlmCount)}${mC('Hooper Index',hooperCount)}${mC(currentLang==='en'?'VAM Tests':'Test VAM',vamCount)}${mC(currentLang==='en'?'GPS Sessions':'Sessioni GPS',gpsCount)}
+      ${mC(currentLang==='en'?'Injuries':'Infortuni',injCount,'',injCount>0?'var(--erT)':'')}${mC(currentLang==='en'?'Weigh-ins':'Pesate',wCount)}${mC('Feedback',fbCount)}${mC(currentLang==='en'?'Athlete ID':'ID Atleta',athId.slice(0,8))}
     </div>
-    <div style="font-weight:600;font-size:13px;margin-bottom:8px;color:var(--tx2)">Ultime sessioni di allenamento</div>
-    ${tbl(['Data','Tipo','Durata','RPE','sRPE','Esercizi'],lastSessions.map(e=>[e.date,e.type||'—',e.duration?e.duration+'min':'—',e.rpe||'—',e.srpe||'—',e.sessionData?((e.sessionData.exercises?.length||0)+(e.sessionData.aerobic?.length||0)+(e.sessionData.warmup?.length||0))+' es.':(e.exercise||'—')]),'Nessuna sessione registrata per questo atleta')}
+    <div style="font-weight:600;font-size:13px;margin-bottom:8px;color:var(--tx2)">${currentLang==='en'?'Latest training sessions':'Ultime sessioni di allenamento'}</div>
+    ${tbl(currentLang==='en'?['Date','Type','Duration','RPE','sRPE','Exercises']:['Data','Tipo','Durata','RPE','sRPE','Esercizi'],lastSessions.map(e=>[e.date,e.type||'—',e.duration?e.duration+'min':'—',e.rpe||'—',e.srpe||'—',e.sessionData?((e.sessionData.exercises?.length||0)+(e.sessionData.aerobic?.length||0)+(e.sessionData.warmup?.length||0))+(currentLang==='en'?' ex.':' es.'):(e.exercise||'—')]),currentLang==='en'?'No sessions recorded for this athlete':'Nessuna sessione registrata per questo atleta')}
   </div>`;
 }
 
@@ -1287,7 +1287,8 @@ function updAeroPreview(){
 function addAeroExercise(){
   const t=document.getElementById('aero-type')?.value||'';
   const customN=document.getElementById('aero-custom-name')?.value||'';
-  const typeLabels={corsa_continua:'Corsa continua',corsa_media:'Corsa ritmo medio',corsa_veloce:'Corsa veloce',lungo:'Lungo (Long Run)',interval_vel:'Interval Training velocità',interval_dist:'Interval Training distanza',fartlek:'Fartlek',tempo_run:'Tempo Run',hiit:'HIIT',sit:'SIT',tabata:'Tabata',small_sided:'Small Sided Games',possession:'Possesso palla',circuit_aero:'Circuit aerobico',navette:'Navette',rondo:'Rondo',recovery_jog:'Recovery Jog',camminata:'Camminata attiva',nuoto:'Nuoto',bike:'Bike ERG',rowing:'Vogatore ERG',custom:customN||'Personalizzato'};
+  const _enAer=currentLang==='en';
+  const typeLabels={corsa_continua:_enAer?'Easy run':'Corsa continua',corsa_media:_enAer?'Medium pace run':'Corsa ritmo medio',corsa_veloce:_enAer?'Fast run':'Corsa veloce',lungo:_enAer?'Long Run':'Lungo (Long Run)',interval_vel:_enAer?'Speed Interval Training':'Interval Training velocità',interval_dist:_enAer?'Distance Interval Training':'Interval Training distanza',fartlek:'Fartlek',tempo_run:'Tempo Run',hiit:'HIIT',sit:'SIT',tabata:'Tabata',small_sided:'Small Sided Games',possession:_enAer?'Ball possession':'Possesso palla',circuit_aero:_enAer?'Aerobic circuit':'Circuit aerobico',navette:_enAer?'Shuttle runs':'Navette',rondo:'Rondo',recovery_jog:'Recovery Jog',camminata:_enAer?'Active walk':'Camminata attiva',nuoto:_enAer?'Swimming':'Nuoto',bike:'Bike ERG',rowing:_enAer?'Rowing ERG':'Vogatore ERG',custom:customN||(_enAer?'Custom':'Personalizzato')};
   const name=typeLabels[t]||t;
   const dur=+document.getElementById('aero-dur')?.value||0;
   const dist=+document.getElementById('aero-dist')?.value||0;
@@ -1670,20 +1671,20 @@ function viewInjuryDetail(injId){
     <div style="background:var(--bg2);border-radius:10px;padding:14px;margin-bottom:16px">
       <div class="grid2" style="gap:10px">
         <div><div style="font-size:11px;color:var(--tx2)">Atleta</div><div style="font-weight:700">${esc(inj.athleteName)}</div></div>
-        <div><div style="font-size:11px;color:var(--tx2)">Data segnalazione</div><div style="font-weight:700">${inj.date}</div></div>
-        <div><div style="font-size:11px;color:var(--tx2)">Stato attuale</div><div>${isClosed?bdg('Risolto','ok'):bdg('Aperto','er')}</div></div>
-        <div><div style="font-size:11px;color:var(--tx2)">Gravità massima</div><div style="font-weight:700">${Math.max(...zz.map(z=>inj[z]),0)}/5</div></div>
+        <div><div style="font-size:11px;color:var(--tx2)">${currentLang==='en'?'Report date':'Data segnalazione'}</div><div style="font-weight:700">${inj.date}</div></div>
+        <div><div style="font-size:11px;color:var(--tx2)">${currentLang==='en'?'Current status':'Stato attuale'}</div><div>${isClosed?bdg(currentLang==='en'?'Resolved':'Risolto','ok'):bdg(currentLang==='en'?'Open':'Aperto','er')}</div></div>
+        <div><div style="font-size:11px;color:var(--tx2)">${currentLang==='en'?'Max severity':'Gravità massima'}</div><div style="font-weight:700">${Math.max(...zz.map(z=>inj[z]),0)}/5</div></div>
       </div>
     </div>
     <div style="margin-bottom:14px">
-      <div style="font-weight:700;font-size:13px;margin-bottom:8px;text-transform:uppercase">Zone interessate</div>
+      <div style="font-weight:700;font-size:13px;margin-bottom:8px;text-transform:uppercase">${currentLang==='en'?'Affected zones':'Zone interessate'}</div>
       ${zz.map(z=>`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:.5px solid var(--bd);font-size:13px">
         <span>${z.replace('_',' ')}</span>
         ${bdg(inj[z]+'/5',inj[z]>=4?'er':inj[z]>=3?'wa':'in')}
       </div>`).join('')}
     </div>
-    ${inj.notes?`<div style="margin-bottom:14px"><div style="font-weight:700;font-size:13px;margin-bottom:6px;text-transform:uppercase">Note cliniche</div><div style="padding:10px;background:var(--bg2);border-radius:8px;font-size:13px">${esc(inj.notes)}</div></div>`:''}
-    ${inj.statusHistory&&inj.statusHistory.length?`<div><div style="font-weight:700;font-size:13px;margin-bottom:6px;text-transform:uppercase">Storico aggiornamenti</div>
+    ${inj.notes?`<div style="margin-bottom:14px"><div style="font-weight:700;font-size:13px;margin-bottom:6px;text-transform:uppercase">${currentLang==='en'?'Clinical notes':'Note cliniche'}</div><div style="padding:10px;background:var(--bg2);border-radius:8px;font-size:13px">${esc(inj.notes)}</div></div>`:''}
+    ${inj.statusHistory&&inj.statusHistory.length?`<div><div style="font-weight:700;font-size:13px;margin-bottom:6px;text-transform:uppercase">${currentLang==='en'?'Update history':'Storico aggiornamenti'}</div>
     ${inj.statusHistory.map(h=>`<div style="font-size:12px;color:var(--tx2);padding:4px 0;border-bottom:.5px solid var(--bd)">${h.date} — ${esc(h.note||(h.status==='closed'?'Infortunio chiuso/risolto':'Infortunio riaperto'))}</div>`).join('')}
     </div>`:''}
   `;
@@ -1695,11 +1696,11 @@ function viewInjuryDetail(injId){
     <button class="secondary" onclick="editInjury('${injId}')">✏️ Modifica</button>
     <button class="secondary" style="color:var(--erT)" onclick="deleteInjury('${injId}')">🗑️</button>
   `;
-  openMosyModal(`Infortunio — ${inj.athleteName}`, body, footer);
+  openMosyModal(`${currentLang==='en'?'Injury':'Infortunio'} — ${inj.athleteName}`, body, footer);
 }
 
 function closeInjuryPrompt(injId){
-  const note = prompt('Nota di chiusura (opzionale): es. esito esami, data ripresa allenamento...') || '';
+  const note = prompt(currentLang==='en'?'Closing note (optional): e.g. exam results, return to training date...':'Nota di chiusura (opzionale): es. esito esami, data ripresa allenamento...') || '';
   const inj = S.injuries.find(x=>x.id===injId);
   if(!inj)return;
   inj.status = 'closed';
@@ -1937,7 +1938,7 @@ return sH(t('vam.title'),t('vam.subtitle'))+
       ['&lt; 5%',bdg('Eccellente — minimo affaticamento','ok')],
       ['5–10%',bdg('Buono — fatica accettabile','ok')],
       ['10–15%',bdg('Moderato — affaticamento significativo','wa')],
-      ['&gt; 15%',bdg('Alto — scarsa capacità RSA / overreaching','er')],
+      ['&gt; 15%',bdg(currentLang==='en'?'High — poor RSA capacity / overreaching':'Alto — scarsa capacità RSA / overreaching','er')],
     ])}
     <p style="font-size:10px;color:var(--tx3);margin-top:8px">Fonte: Glaister, M. (2005). Sports Med; Spencer et al. (2005). Sports Med</p>
   </div>
@@ -2041,21 +2042,22 @@ function updVAMTest(){
   if(lapsR)lapsR.style.display=cfg.laps?'':'none';
   const vd=document.getElementById('vdist');
   if(vd&&cfg.dist>0)vd.value=cfg.dist;
+  const _enVam=currentLang==='en';
   const lbl={
-    '1000m':'Inserisci distanza (1000m) e tempo impiegato',
-    '1500m':'Bronco Test: 3x(100+150+200+250+300m) = 1500m totali',
-    '2000m':'Inserisci distanza (2000m) e tempo impiegato',
-    '3000m':'Inserisci distanza (3000m) e tempo impiegato',
-    'Cooper':'Inserisci la distanza percorsa in 12 minuti',
-    'Leger':'Inserisci il palier raggiunto (es. 12.5)',
-    'Gacon':'Inserisci il palier raggiunto (ogni +0.5 km/h ogni 45s)',
-    'Shuttle6':'6x40m navette: inserisci distanza (240m) e tempo',
-    'YOYO_IR1':'Inserisci i metri totali raggiunti nel test',
-    'YOYO_IR2':'Inserisci i metri totali raggiunti nel test IR2',
-    'Beep':'Inserisci il livello/palier raggiunto',
-    'T2400':'2.4km Army Run: inserisci il tempo',
-    '5000m':'Inserisci il tempo per i 5000m',
-    'Custom':'Test personalizzato: inserisci distanza e tempo',
+    '1000m':_enVam?'Enter distance (1000m) and time taken':'Inserisci distanza (1000m) e tempo impiegato',
+    '1500m':_enVam?'Bronco Test: 3x(100+150+200+250+300m) = 1500m total':'Bronco Test: 3x(100+150+200+250+300m) = 1500m totali',
+    '2000m':_enVam?'Enter distance (2000m) and time taken':'Inserisci distanza (2000m) e tempo impiegato',
+    '3000m':_enVam?'Enter distance (3000m) and time taken':'Inserisci distanza (3000m) e tempo impiegato',
+    'Cooper':_enVam?'Enter distance covered in 12 minutes':'Inserisci la distanza percorsa in 12 minuti',
+    'Leger':_enVam?'Enter the level reached (e.g. 12.5)':'Inserisci il palier raggiunto (es. 12.5)',
+    'Gacon':_enVam?'Enter the level reached (every +0.5 km/h per 45s)':'Inserisci il palier raggiunto (ogni +0.5 km/h ogni 45s)',
+    'Shuttle6':_enVam?'6x40m shuttles: enter distance (240m) and time':'6x40m navette: inserisci distanza (240m) e tempo',
+    'YOYO_IR1':_enVam?'Enter total metres reached in the test':'Inserisci i metri totali raggiunti nel test',
+    'YOYO_IR2':_enVam?'Enter total metres reached in the IR2 test':'Inserisci i metri totali raggiunti nel test IR2',
+    'Beep':_enVam?'Enter the level/stage reached':'Inserisci il livello/palier raggiunto',
+    'T2400':_enVam?'2.4km Army Run: enter the time':'2.4km Army Run: inserisci il tempo',
+    '5000m':_enVam?'Enter the time for 5000m':'Inserisci il tempo per i 5000m',
+    'Custom':_enVam?'Custom test: enter distance and time':'Test personalizzato: inserisci distanza e tempo',
   };
   const fn=document.getElementById('vam-formula-note');
   if(fn)fn.textContent=lbl[t]||'';
@@ -2372,7 +2374,7 @@ R.lvp=()=>{
       (S.jumpTests||[]).slice().reverse().slice(0,15).map(j=>({
         cells:[j.date,j.athleteName,j.sjHeight?.toFixed(1)||'—',j.cmjHeight?.toFixed(1)||'—',j.bosco!=null?bdg(j.bosco.toFixed(1)+'%',j.bosco>=33?'ok':'wa'):'—',j.points?.length||'—',j.F0PerKg?.toFixed(2)||'—',j.V0?.toFixed(2)||'—',j.PmaxPerKg?.toFixed(2)||'—',j.r2?.toFixed(3)||'—'],
         onclick:`viewJumpTestDetail('${j.id}')`
-      })),'Nessun test SJ/CMJ registrato · clicca una riga per i dettagli')}
+      })),currentLang==='en'?'No SJ/CMJ tests recorded · click a row for details':'Nessun test SJ/CMJ registrato · clicca una riga per i dettagli')}
   </div>
   </div>
   `;
@@ -2659,7 +2661,8 @@ function calcJumpProfile(){
   if(samozinoData){
     document.getElementById('samozino-result-card').style.display='';
     document.getElementById('samozino-chart-card').style.display='';
-    const r2Warning = samozinoData.r2<0.90 ? `<p style="font-size:11px;color:var(--erT);margin-top:6px">⚠️ R² basso (${samozinoData.r2.toFixed(3)}): i punti raccolti si discostano da una relazione lineare ideale. Verifica le misurazioni o aggiungi più punti per migliorare l'affidabilità del profilo.</p>` : '';
+    const _enSam=currentLang==='en';
+    const r2Warning = samozinoData.r2<0.90 ? `<p style="font-size:11px;color:var(--erT);margin-top:6px">${_enSam?`⚠️ Low R² (${samozinoData.r2.toFixed(3)}): collected points deviate from an ideal linear relationship. Check measurements or add more points to improve profile reliability.`:`⚠️ R² basso (${samozinoData.r2.toFixed(3)}): i punti raccolti si discostano da una relazione lineare ideale. Verifica le misurazioni o aggiungi più punti per migliorare l'affidabilità del profilo.`}</p>` : '';
     document.getElementById('samozino-result').innerHTML = `
       <div class="grid2" style="gap:8px;margin-bottom:10px">
         ${mC('F0','<span>'+samozinoData.F0PerKg.toFixed(2)+'</span>','N/kg','var(--pu)')}
@@ -2817,7 +2820,7 @@ function deleteJumpTest(testId){
 
 
 // ══ GPS ══
-R.gps=()=>sH('GPS Data','Distanza · Zone di velocità · Accelerazioni/Decelerazioni · Kicking Power')+
+R.gps=()=>sH('GPS Data',currentLang==='en'?'Distance · Velocity zones · Accelerations/Decelerations · Kicking Power':'Distanza · Zone di velocità · Accelerazioni/Decelerazioni · Kicking Power')+
 `<div class="grid2"><div class="card">
 <div class="grid2" style="gap:10px">${asel('ga')}${inp('gd','Data','date',today())}</div>
 ${sel('gt','Tipo',['Partita','Pratica','Aerobico','S&C','Power End','Recovery'].map(v=>({v,l:v})),'Pratica')}
@@ -2836,7 +2839,7 @@ ${inp('gz1','0-6 km/h — Camminata (m)','number',3370,'min=0')}
 <div style="font-size:12px;font-weight:600;color:var(--tx2);margin:10px 0 6px;text-transform:uppercase">Kicking &amp; Touches</div>
 <div class="grid2" style="gap:10px">${inp('gkl','Kicking sx (kph)','number',0,'min=0 step=0.1')}${inp('gkr','Kicking dx (kph)','number',0,'min=0 step=0.1')}
 ${inp('gtl','Tocchi sx','number',0,'min=0')}${inp('gtr','Tocchi dx','number',0,'min=0')}
-${inp('gbd','Dist. con palla (m)','number',0,'min=0')}</div>
+${inp('gbd',currentLang==='en'?'Ball dist. (m)':'Dist. con palla (m)','number',0,'min=0')}</div>
 <button class="primary" onclick="saveGPS()" style="width:100%">💾 Salva GPS</button></div>
 <div>
 <div class="grid2" style="margin-bottom:12px;gap:8px">${mC('Dist./min','<span id="gdpm">—</span>','m/min','var(--pu)')}${mC('% HSR (&gt;20km/h)','<span id="gphsr">—</span>','%')}${mC('% Sprint','<span id="gpspr">—</span>','%')}${mC('Acc+Dec tot.','<span id="gaccdec">—</span>','')}</div>
@@ -2923,21 +2926,21 @@ function deleteGpsSession(gpsId){
 
 
 // ══ TRIMP ══
-R.trimp=()=>{const zn=[{k:'z1',k2:1,l:'Zona 1',p:'< 60% FCmax'},{k:'z2',k2:2,l:'Zona 2',p:'60–70%'},{k:'z3',k2:3,l:'Zona 3',p:'70–80%'},{k:'z4',k2:4,l:'Zona 4',p:'80–90%'},{k:'z5',k2:5,l:'Zona 5',p:'> 90%'}];
+R.trimp=()=>{const _en=currentLang==='en';const zn=[{k:'z1',k2:1,l:_en?'Zone 1':'Zona 1',p:'< 60% FCmax'},{k:'z2',k2:2,l:_en?'Zone 2':'Zona 2',p:'60–70%'},{k:'z3',k2:3,l:_en?'Zone 3':'Zona 3',p:'70–80%'},{k:'z4',k2:4,l:_en?'Zone 4':'Zona 4',p:'80–90%'},{k:'z5',k2:5,l:_en?'Zone 5':'Zona 5',p:'> 90%'}];
 return sH('TRIMP — Training Impulse','Metodo Edwards: TL = Σ(min zona × k)')+
 `<div class="grid2"><div class="card">${asel('tra')}${inp('trd','Data','date',today())}
-<p style="font-size:12px;color:var(--tx2);margin:0 0 10px">Minuti per ciascuna zona FC:</p>
+<p style="font-size:12px;color:var(--tx2);margin:0 0 10px">${currentLang==='en'?'Minutes per HR zone:':'Minuti per ciascuna zona FC:'}</p>
 ${zn.map(z=>`<div style="display:grid;grid-template-columns:1fr 80px 55px;gap:8px;align-items:center;margin-bottom:7px"><div><span style="font-weight:500;font-size:13px">${z.l}</span> <span style="font-size:11px;color:var(--tx2)">${z.p}·k=${z.k2}</span></div><input id="tr${z.k}" type="number" value="0" min="0" max="300" style="text-align:right"><span style="font-size:12px;color:var(--tx2)">=<span id="tr${z.k}p" style="font-weight:500"> 0</span></span></div>`).join('')}
 <div style="padding:10px;background:var(--bg2);border-radius:8px;margin:8px 0 14px;display:flex;align-items:center;gap:12px"><div><div style="font-size:11px;color:var(--tx2)">TRIMP</div><div style="font-size:28px;font-weight:500;color:var(--pu)" id="tr-v">0</div></div><div id="tr-b"></div></div>
 <button class="primary" onclick="saveTRIMP()">💾 Salva</button></div>
 <div><div class="grid2" style="margin-bottom:12px;gap:8px">${mC('TRIMP sett.','<span id="trw">—</span>','','var(--pu)')}${mC('Media giorn.','<span id="tra2">—</span>','')}</div>
-<div class="card" style="margin-bottom:12px"><div style="font-weight:500;font-size:13px;margin-bottom:6px">Riferimento</div>
+<div class="card" style="margin-bottom:12px"><div style="font-weight:500;font-size:13px;margin-bottom:6px">${currentLang==='en'?'Reference':'Riferimento'}</div>
 ${tbl(['Zona','% FCmax','k'],[['Z1','<60%',1],['Z2','60–70%',2],['Z3','70–80%',3],['Z4','80–90%',4],['Z5','>90%',5]])}
 <p style="font-size:11px;color:var(--tx2);margin-top:6px">Basso &lt;100 · Moderato 100–200 · Alto 200–300 · Molto alto &gt;300</p></div>
-<div class="card"><div style="font-weight:500;font-size:13px;margin-bottom:8px">Storico TRIMP</div><div id="tr-tbl">${trTbl(S.athletes[0]?.id)}</div></div></div></div>`;};
-INI.trimp=()=>{const up=()=>{let tot=0;[1,2,3,4,5].forEach(k=>{const v=+document.getElementById(`trz${k}`)?.value||0;tot+=k*v;const p=document.getElementById(`trz${k}p`);if(p)p.textContent=' '+(k*v);});document.getElementById('tr-v').textContent=tot;const b=document.getElementById('tr-b');if(b)b.innerHTML=tot<100?bdg('Basso','in'):tot<200?bdg('Moderato','ok'):tot<300?bdg('Alto','wa'):bdg('Molto alto','er');updTrStats();};[1,2,3,4,5].forEach(k=>document.getElementById(`trz${k}`)?.addEventListener('input',up));document.getElementById('tra')?.addEventListener('change',e=>{const el=document.getElementById('tr-tbl');if(el)el.innerHTML=trTbl(e.target.value);updTrStats();});up();};
+<div class="card"><div style="font-weight:500;font-size:13px;margin-bottom:8px">${currentLang==='en'?'TRIMP History':'Storico TRIMP'}</div><div id="tr-tbl">${trTbl(S.athletes[0]?.id)}</div></div></div></div>`;};
+INI.trimp=()=>{const up=()=>{let tot=0;[1,2,3,4,5].forEach(k=>{const v=+document.getElementById(`trz${k}`)?.value||0;tot+=k*v;const p=document.getElementById(`trz${k}p`);if(p)p.textContent=' '+(k*v);});document.getElementById('tr-v').textContent=tot;const b=document.getElementById('tr-b');const _en2=currentLang==='en';if(b)b.innerHTML=tot<100?bdg(_en2?'Low':'Basso','in'):tot<200?bdg(_en2?'Moderate':'Moderato','ok'):tot<300?bdg(_en2?'High':'Alto','wa'):bdg(_en2?'Very high':'Molto alto','er');updTrStats();};[1,2,3,4,5].forEach(k=>document.getElementById(`trz${k}`)?.addEventListener('input',up));document.getElementById('tra')?.addEventListener('change',e=>{const el=document.getElementById('tr-tbl');if(el)el.innerHTML=trTbl(e.target.value);updTrStats();});up();};
 function updTrStats(){const sid=document.getElementById('tra')?.value;const l7=S.trimp.filter(t=>t.athleteId==sid).slice(-7);const ws=l7.reduce((s,t)=>s+(t.trimp||0),0);const we=document.getElementById('trw');if(we)we.textContent=ws;const av=document.getElementById('tra2');if(av)av.textContent=l7.length?Math.round(ws/l7.length):'—';}
-function trTbl(id){const rows=S.trimp.filter(t=>t.athleteId==id).slice().reverse().slice(0,10);return tbl(['Data','Z1','Z2','Z3','Z4','Z5','TRIMP'],rows.map(t=>[t.date,t.z1,t.z2,t.z3,t.z4,t.z5,`<strong style="color:var(--pu)">${t.trimp}</strong>`]),'Nessun dato');}
+function trTbl(id){const rows=S.trimp.filter(t=>t.athleteId==id).slice().reverse().slice(0,10);return tbl(currentLang==='en'?['Date','Z1','Z2','Z3','Z4','Z5','TRIMP']:['Data','Z1','Z2','Z3','Z4','Z5','TRIMP'],rows.map(t=>[t.date,t.z1,t.z2,t.z3,t.z4,t.z5,`<strong style="color:var(--pu)">${t.trimp}</strong>`]),currentLang==='en'?'No data':'Nessun dato');}
 function saveTRIMP(){const g=k=>+document.getElementById(`trz${k}`)?.value||0;const aid=document.getElementById('tra')?.value;const vals={z1:g(1),z2:g(2),z3:g(3),z4:g(4),z5:g(5)};const trimp=[1,2,3,4,5].reduce((s,k,i)=>s+k*vals[`z${i+1}`],0);S.trimp.push({id:rid(),athleteId:aid,athleteName:athName(aid),date:document.getElementById('trd')?.value,trimp,...vals});save();render('trimp');}
 
 // ══ Z-SCORE ══
@@ -2950,7 +2953,7 @@ ${tts.map(t=>inp(`z${t.k}`,t.l,'number',0,'min=0 step=0.01')).join('')}
 <div id="z-res">${zRes()}</div>
 <div style="margin-top:12px">${tbl(['Z','Classificazione'],[['≥2',bdg('Elite','ok')],['1–2',bdg('Above avg','ok')],['−1–1',bdg('Media','in')],['−2–−1',bdg('Sotto media','wa')],['<−2',bdg('Molto sotto','er')]])}</div></div></div>`;};
 INI.zscore=()=>document.getElementById('za')?.addEventListener('change',()=>{const el=document.getElementById('z-res');if(el)el.innerHTML=zRes();});
-function zRes(){const tts=[{k:'bp',l:'Bench Press'},{k:'sq',l:'Squat'},{k:'dl',l:'Deadlift'},{k:'vj',l:'Vert.Jump'},{k:'s10',l:'10m Sprint',inv:true}];const lp={};S.zscore.forEach(d=>{if(!lp[d.athleteId]||d.date>lp[d.athleteId].date)lp[d.athleteId]=d;});const pts=Object.values(lp);if(pts.length<2)return '<p style="font-size:12px;color:var(--tx2)">Servono almeno 2 atleti per calcolare Z-score.</p>';const cZ=(vals,v)=>{const m=vals.reduce((s,x)=>s+x,0)/vals.length;const sd=Math.sqrt(vals.map(x=>Math.pow(x-m,2)).reduce((s,x)=>s+x,0)/(vals.length-1));return sd>0?((v-m)/sd).toFixed(2):'0.00';};const sid=document.getElementById('za')?.value;const me=pts.find(p=>p.athleteId==sid)||pts[0];if(!me)return '';return tts.map(t=>{const vals=pts.map(p=>p[t.k]||0).filter(v=>v>0);if(vals.length<2)return '';const z=parseFloat(cZ(vals,me[t.k]||0))*(t.inv?-1:1);const zs=z.toFixed(2);const[zl,zt]=z>=2?['Elite','ok']:z>=1?['Above avg','ok']:z>=-1?['Media','in']:z>=-2?['Sotto media','wa']:['Molto sotto','er'];const pct=Math.min(100,Math.max(0,(z+3)/6*100)).toFixed(0);return `<div style="padding:7px 0;border-bottom:.5px solid var(--bd)"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px"><span style="font-size:13px">${t.l}</span><div style="display:flex;gap:6px;align-items:center"><span style="font-weight:500">z=${zs}</span>${bdg(zl,zt)}</div></div><div style="height:4px;background:var(--bg3);border-radius:2px"><div style="height:100%;width:${pct}%;background:var(--pu);border-radius:2px;transition:width .3s"></div></div></div>`;}).join('');}
+function zRes(){const tts=[{k:'bp',l:'Bench Press'},{k:'sq',l:'Squat'},{k:'dl',l:'Deadlift'},{k:'vj',l:'Vert.Jump'},{k:'s10',l:'10m Sprint',inv:true}];const lp={};S.zscore.forEach(d=>{if(!lp[d.athleteId]||d.date>lp[d.athleteId].date)lp[d.athleteId]=d;});const pts=Object.values(lp);if(pts.length<2)return '<p style="font-size:12px;color:var(--tx2)">Servono almeno 2 atleti per calcolare Z-score.</p>';const cZ=(vals,v)=>{const m=vals.reduce((s,x)=>s+x,0)/vals.length;const sd=Math.sqrt(vals.map(x=>Math.pow(x-m,2)).reduce((s,x)=>s+x,0)/(vals.length-1));return sd>0?((v-m)/sd).toFixed(2):'0.00';};const sid=document.getElementById('za')?.value;const me=pts.find(p=>p.athleteId==sid)||pts[0];if(!me)return '';return tts.map(t=>{const vals=pts.map(p=>p[t.k]||0).filter(v=>v>0);if(vals.length<2)return '';const z=parseFloat(cZ(vals,me[t.k]||0))*(t.inv?-1:1);const zs=z.toFixed(2);const _enZ=currentLang==='en';const[zl,zt]=z>=2?['Elite','ok']:z>=1?['Above avg','ok']:z>=-1?[_enZ?'Average':'Media','in']:z>=-2?[_enZ?'Below avg':'Sotto media','wa']:[_enZ?'Well below':'Molto sotto','er'];const pct=Math.min(100,Math.max(0,(z+3)/6*100)).toFixed(0);return `<div style="padding:7px 0;border-bottom:.5px solid var(--bd)"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px"><span style="font-size:13px">${t.l}</span><div style="display:flex;gap:6px;align-items:center"><span style="font-weight:500">z=${zs}</span>${bdg(zl,zt)}</div></div><div style="height:4px;background:var(--bg3);border-radius:2px"><div style="height:100%;width:${pct}%;background:var(--pu);border-radius:2px;transition:width .3s"></div></div></div>`;}).join('');}
 function saveZ(){const g=id=>+document.getElementById(id)?.value||0;const aid=document.getElementById('za')?.value;S.zscore.push({id:rid(),athleteId:aid,athleteName:athName(aid),date:document.getElementById('zd')?.value,bp:g('zbp'),sq:g('zsq'),dl:g('zdl'),pc:g('zpc'),vj:g('zvj'),hj:g('zhj'),s10:g('zs10')});save();render('zscore');}
 
 // ══ INOL ══
@@ -2973,17 +2976,18 @@ function saveINOL(){const g=id=>document.getElementById(id)?.value;const aid=g('
 
 // ══ WEEKLY PLAN ══
 R.weekly=()=>{
-  const days=['Lunedì','Martedì','Mercoledì','Giovedì','Venerdì','Sabato','Domenica'];
-  const workTypes=['Tecnico-Tattico','Potenza','Forza','Aerobico','Warm-up','Rifinitura','Recovery','Partita','Altro'];
+  const isEN=currentLang==='en';
+  const days=isEN?['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday']:['Lunedì','Martedì','Mercoledì','Giovedì','Venerdì','Sabato','Domenica'];
+  const workTypes=isEN?['Technical-Tactical','Power','Strength','Aerobic','Warm-up','Taper','Recovery','Match','Other']:['Tecnico-Tattico','Potenza','Forza','Aerobico','Warm-up','Rifinitura','Recovery','Partita','Altro'];
   const typeColors={'Tecnico-Tattico':'#3b82f6','Potenza':'#e31e24','Forza':'#7c3aed','Aerobico':'#10b981','Warm-up':'#f59e0b','Rifinitura':'#eab308','Recovery':'#06b6d4','Partita':'#dc2626','Altro':'#6b7280'};
   window._weekPlan = window._weekPlan || days.map(()=>[]);
   return sH('Weekly Plan','Pianificazione settimanale · Volume per tipo di lavoro · Intensità RPE')+
   `<div class="card" style="margin-bottom:14px">
     <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;margin-bottom:14px">
       <div>${inp('wpd','Settimana dal','date',today())}</div>
-      ${mC('Carico settimanale','<span id="wpl">0</span>','sRPE')}
-      ${mC('Sessioni totali','<span id="wps">0</span>','')}
-      ${mC('Minuti totali','<span id="wpmin">0</span>','min')}
+      ${mC(currentLang==='en'?'Weekly load':'Carico settimanale','<span id="wpl">0</span>','sRPE')}
+      ${mC(currentLang==='en'?'Total sessions':'Sessioni totali','<span id="wps">0</span>','')}
+      ${mC(currentLang==='en'?'Total minutes':'Minuti totali','<span id="wpmin">0</span>','min')}
     </div>
     <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px">
       ${days.map((d,i)=>`<div style="background:var(--bg2);border-radius:8px;padding:8px 6px;border:.5px solid var(--bd);min-height:140px">
@@ -2997,14 +3001,14 @@ R.weekly=()=>{
   </div>
 
   <div class="card" style="margin-bottom:14px">
-    <div style="font-weight:700;font-size:13px;margin-bottom:10px;text-transform:uppercase">Grafico Volume (colonne impilate) e Intensità (linea RPE)</div>
+    <div style="font-weight:700;font-size:13px;margin-bottom:10px;text-transform:uppercase">${currentLang==='en'?'Volume chart (stacked columns) and Intensity (RPE line)':'Grafico Volume (colonne impilate) e Intensità (linea RPE)'}</div>
     <div id="weekly-chart"></div>
     <div id="weekly-legend" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;font-size:10px"></div>
   </div>
 
   <div class="card">
-    <div style="font-weight:500;font-size:13px;margin-bottom:8px">Settimane salvate <span style="font-size:11px;color:var(--tx2);font-weight:400">(clicca per dettagli)</span></div>
-    ${tblClickable(['Settimana dal','Carico tot.','Sessioni','Minuti'],S.weekly.slice().reverse().slice(0,12).map(w=>({cells:[w.date,w.load+' sRPE',w.sessions,w.totalMin||'—'],onclick:`viewWeeklyDetail('${w.id}')`})),'Nessuna settimana salvata')}
+    <div style="font-weight:500;font-size:13px;margin-bottom:8px">${currentLang==='en'?'Saved weeks':'Settimane salvate'} <span style="font-size:11px;color:var(--tx2);font-weight:400">${currentLang==='en'?'(click for details)':'(clicca per dettagli)'}</span></div>
+    ${tblClickable(currentLang==='en'?['Week starting','Total load','Sessions','Minutes']:['Settimana dal','Carico tot.','Sessioni','Minuti'],S.weekly.slice().reverse().slice(0,12).map(w=>({cells:[w.date,w.load+' sRPE',w.sessions,w.totalMin||'—'],onclick:`viewWeeklyDetail('${w.id}')`})),'Nessuna settimana salvata')}
   </div>`;
 };
 
@@ -3014,7 +3018,7 @@ INI.weekly=()=>{
 };
 
 function addWeekWorkBlock(dayIdx){
-  const workTypes=['Tecnico-Tattico','Potenza','Forza','Aerobico','Warm-up','Rifinitura','Recovery','Partita','Altro'];
+  const workTypes=currentLang==='en'?['Technical-Tactical','Power','Strength','Aerobic','Warm-up','Taper','Recovery','Match','Other']:['Tecnico-Tattico','Potenza','Forza','Aerobico','Warm-up','Rifinitura','Recovery','Partita','Altro'];
   window._weekPlan = window._weekPlan || [[],[],[],[],[],[],[]];
   if(!window._weekPlan[dayIdx])window._weekPlan[dayIdx]=[];
   window._weekPlan[dayIdx].push({id:rid(), type:workTypes[0], min:20, rpe:5});
@@ -3039,7 +3043,7 @@ function updWeekBlock(dayIdx, blockId, field, value){
 }
 
 function renderWeekDayBlocks(dayIdx){
-  const workTypes=['Tecnico-Tattico','Potenza','Forza','Aerobico','Warm-up','Rifinitura','Recovery','Partita','Altro'];
+  const workTypes=currentLang==='en'?['Technical-Tactical','Power','Strength','Aerobic','Warm-up','Taper','Recovery','Match','Other']:['Tecnico-Tattico','Potenza','Forza','Aerobico','Warm-up','Rifinitura','Recovery','Partita','Altro'];
   const el = document.getElementById(`wday-blocks-${dayIdx}`);
   if(!el)return;
   const blocks = window._weekPlan?.[dayIdx]||[];
@@ -3090,7 +3094,7 @@ function calcWeeklyTotals(){
 }
 
 function renderWeeklyChart(dayData, typeColors){
-  const days=['Lun','Mar','Mer','Gio','Ven','Sab','Dom'];
+  const days=currentLang==='en'?['Mon','Tue','Wed','Thu','Fri','Sat','Sun']:['Lun','Mar','Mer','Gio','Ven','Sab','Dom'];
   const W=360, H=220, padL=36, padB=24, padT=14, padR=14;
   const chartW = W-padL-padR, chartH = H-padT-padB;
   const maxMin = Math.max(...dayData.map(d=>d.dayMin), 60)*1.15;
@@ -3157,13 +3161,13 @@ function saveWeekly(){
 function viewWeeklyDetail(weekId){
   const w = S.weekly.find(x=>x.id===weekId);
   if(!w){alert('Settimana non trovata');return;}
-  const days=['Lunedì','Martedì','Mercoledì','Giovedì','Venerdì','Sabato','Domenica'];
+  const days=currentLang==='en'?['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday']:['Lunedì','Martedì','Mercoledì','Giovedì','Venerdì','Sabato','Domenica'];
   const body = `
     <div class="grid2" style="gap:10px;margin-bottom:14px">
-      ${mC('Settimana dal',w.date)}
-      ${mC('Carico totale',w.load+' sRPE','','var(--pu)')}
-      ${mC('Sessioni',w.sessions)}
-      ${mC('Minuti totali',w.totalMin||'—')}
+      ${mC(currentLang==='en'?'Week starting':'Settimana dal',w.date)}
+      ${mC(currentLang==='en'?'Total load':'Carico totale',w.load+' sRPE','','var(--pu)')}
+      ${mC(currentLang==='en'?'Sessions':'Sessioni',w.sessions)}
+      ${mC(currentLang==='en'?'Total minutes':'Minuti totali',w.totalMin||'—')}
     </div>
     ${(w.days||[]).map((blocks,i)=>blocks&&blocks.length?`<div style="margin-bottom:10px">
       <div style="font-weight:700;font-size:12px;color:var(--pu);margin-bottom:4px">${days[i]}</div>
@@ -3171,7 +3175,7 @@ function viewWeeklyDetail(weekId){
     </div>`:'').join('')}
   `;
   const footer = `<button class="secondary" style="color:var(--erT)" onclick="deleteWeeklyPlan('${weekId}')">🗑️ Elimina settimana</button>`;
-  openMosyModal(`Settimana ${w.date}`, body, footer);
+  openMosyModal(`${currentLang==='en'?'Week':'Settimana'} ${w.date}`, body, footer);
 }
 
 function deleteWeeklyPlan(weekId){
@@ -3184,7 +3188,7 @@ function deleteWeeklyPlan(weekId){
 
 
 // ══ MACRO-MESOCICLO ══
-R.macro=()=>{const types=['Partita','Allenamento','Forza','Aerobico','Recovery','Off/Riposo','Trasferta','Test/Valutazione'];const tC={Partita:'#fecaca',Allenamento:'#dbeafe',Forza:'#ede9fe',Aerobico:'#d1fae5',Recovery:'#cffafe','Off/Riposo':'var(--bg2)',Trasferta:'#fef9c3','Test/Valutazione':'#f3e8ff'};const now=new Date(),y=now.getFullYear(),m=now.getMonth();const dim=new Date(y,m+1,0).getDate(),dow=(new Date(y,m,1).getDay()+6)%7;const mN=['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];const ebd={};S.macro.forEach(e=>{ebd[e.date]=[...(ebd[e.date]||[]),e];});const td=today();const cells=[...Array(dow).fill('<div></div>'),...Array.from({length:dim},(_,i)=>{const day=i+1,ds=`${y}-${String(m+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;const ev=ebd[ds]||[];const bg=ev.length>0?(tC[ev[0].type]||'var(--bg2)'):'var(--bg2)';return `<div style="background:${bg};border-radius:5px;padding:4px 3px;min-height:36px;border:${ds===td?'1.5px solid var(--pu)':'.5px solid var(--bd)'};font-size:10px"><div style="font-weight:600;margin-bottom:1px">${day}</div>${ev.map(e=>`<div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#374151;font-size:9px">${e.type}${e.opponent?' – '+e.opponent:''}</div>`).join('')}</div>`;})].join('');
+R.macro=()=>{const types=currentLang==='en'?['Match','Training','Strength','Aerobic','Recovery','Off/Rest','Away','Test/Assessment']:['Partita','Allenamento','Forza','Aerobico','Recovery','Off/Riposo','Trasferta','Test/Valutazione'];const tC={Partita:'#fecaca',Allenamento:'#dbeafe',Forza:'#ede9fe',Aerobico:'#d1fae5',Recovery:'#cffafe','Off/Riposo':'var(--bg2)',Trasferta:'#fef9c3','Test/Valutazione':'#f3e8ff'};const now=new Date(),y=now.getFullYear(),m=now.getMonth();const dim=new Date(y,m+1,0).getDate(),dow=(new Date(y,m,1).getDay()+6)%7;const mN=currentLang==='en'?['January','February','March','April','May','June','July','August','September','October','November','December']:['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];const ebd={};S.macro.forEach(e=>{ebd[e.date]=[...(ebd[e.date]||[]),e];});const td=today();const cells=[...Array(dow).fill('<div></div>'),...Array.from({length:dim},(_,i)=>{const day=i+1,ds=`${y}-${String(m+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;const ev=ebd[ds]||[];const bg=ev.length>0?(tC[ev[0].type]||'var(--bg2)'):'var(--bg2)';return `<div style="background:${bg};border-radius:5px;padding:4px 3px;min-height:36px;border:${ds===td?'1.5px solid var(--pu)':'.5px solid var(--bd)'};font-size:10px"><div style="font-weight:600;margin-bottom:1px">${day}</div>${ev.map(e=>`<div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#374151;font-size:9px">${e.type}${e.opponent?' – '+e.opponent:''}</div>`).join('')}</div>`;})].join('');
 return sH('Macro-Mesociclo','Calendario stagionale · In-Season planning · 36 settimane')+
 `<div class="grid2"><div class="card">${inp('mcd','Data','date',td)}
 ${sel('mct','Tipo',types.map(v=>({v,l:v})),'Partita')}${inp('mco','Avversario / Dettagli','text','')}
@@ -3195,16 +3199,40 @@ ${Object.entries(tC).map(([k,v])=>`<div style="display:flex;align-items:center;g
 <div class="card"><div style="font-weight:500;font-size:14px;text-align:center;margin-bottom:10px">${mN[m]} ${y}</div>
 <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:4px">${['L','M','M','G','V','S','D'].map(d=>`<div style="text-align:center;font-size:10px;color:var(--tx2);font-weight:500;padding:2px 0">${d}</div>`).join('')}</div>
 <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px">${cells}</div></div></div>
-<div class="card"><div style="font-weight:500;font-size:13px;margin-bottom:8px">Prossimi eventi (${S.macro.filter(e=>e.date>=td).length})</div>
-${tbl(['Data','Tipo','Avversario','Luogo'],S.macro.filter(e=>e.date>=td).sort((a,b)=>a.date.localeCompare(b.date)).slice(0,15).map(e=>[e.date,bdg(e.type,e.type==='Partita'?'er':e.type==='Allenamento'?'in':'ok'),e.opponent||'—',e.location]),'Nessun evento futuro')}</div>`;};
+<div class="card"><div style="font-weight:500;font-size:13px;margin-bottom:8px">${currentLang==='en'?'Upcoming events':'Prossimi eventi'} (${S.macro.filter(e=>e.date>=td).length})</div>
+${tbl(currentLang==='en'?['Date','Type','Opponent','Venue']:['Data','Tipo','Avversario','Luogo'],S.macro.filter(e=>e.date>=td).sort((a,b)=>a.date.localeCompare(b.date)).slice(0,15).map(e=>[e.date,bdg(e.type,e.type==='Partita'?'er':e.type==='Allenamento'?'in':'ok'),e.opponent||'—',e.location]),currentLang==='en'?'No upcoming events':'Nessun evento futuro')}</div>`;};
 function saveMacro(){const g=id=>document.getElementById(id)?.value;S.macro.push({id:rid(),date:g('mcd'),type:g('mct'),opponent:g('mco'),location:g('mcl'),notes:g('mcn')});save();render('macro');}
 
 // ══ NUTRITION ══
-R.nutrition=()=>{const meals=[{t:'Cena pre-match (sera prima)',c:'Primo: risotto (80–100g) al sugo o ai quattro formaggi. Secondo: pesce azzurro al forno o carne bianca grigliata con verdure. Frutta fresca.',a:'Alt: Spaghetti 100g al sugo + pesce/insalata + 2 fette pane integrale. Frutta.'},{t:'Colazione (giorno partita, 2–3h prima)',c:'Latte p.sc., yogurt magro, cereali, spremuta, banana, fette biscottate. Salata: toast prosciutto + formaggio + uova strapazzate.',a:'Alt: Crostata fatta in casa + yogurt greco + 20g mandorle/noci + 1 frutto.'},{t:'Pranzo (3h prima)',c:'Pasta corta al dente (80–100g) olio evo e parmigiano. Fettina vitello alla griglia. Dessert: 1 fetta crostata marmellata.',a:'Alt: Pasta al sugo + bresaola o prosciutto (100g) con grana.'},{t:'Spuntino (max 1h prima)',c:'Yogurt magro + 1 frutto, oppure succo di frutta + frutto, o 4–5 biscotti secchi (no cacao/panna).',a:''},{t:'Post-match / Recovery',c:'Entro 30min: frullato proteine + banana + latte. Pasto entro 2h: proteine magre + carboidrati complessi + verdure.',a:''}];const tips=['Non saltare la colazione!','Dormi 7–8h per notte. A letto entro le 23.','Rispetta pasti e orari.','Evita bibite gassate e alcolici.','Contatta lo Staff per qualsiasi dubbio.','Segnala intolleranze e allergie.','Limita integratori non prescritti dallo staff.','Idratazione: almeno 2L/die, 500ml 2h prima.'];
-return sH('Nutrition Planning','Linee guida alimentari pre e post match')+
+R.nutrition=()=>{
+  const isEN = currentLang==='en';
+  const mealsIT=[
+    {t:'Cena pre-match (sera prima)',c:'Primo: risotto (80–100g) al sugo o ai quattro formaggi. Secondo: pesce azzurro al forno o carne bianca grigliata con verdure. Frutta fresca.',a:'Alt: Spaghetti 100g al sugo + pesce/insalata + 2 fette pane integrale. Frutta.'},
+    {t:'Colazione (giorno partita, 2–3h prima)',c:'Latte p.sc., yogurt magro, cereali, spremuta, banana, fette biscottate. Salata: toast prosciutto + formaggio + uova strapazzate.',a:'Alt: Crostata fatta in casa + yogurt greco + 20g mandorle/noci + 1 frutto.'},
+    {t:'Pranzo (3h prima)',c:'Pasta corta al dente (80–100g) olio evo e parmigiano. Fettina vitello alla griglia. Dessert: 1 fetta crostata marmellata.',a:'Alt: Pasta al sugo + bresaola o prosciutto (100g) con grana.'},
+    {t:'Spuntino (max 1h prima)',c:'Yogurt magro + 1 frutto, oppure succo di frutta + frutto, o 4–5 biscotti secchi (no cacao/panna).',a:''},
+    {t:'Post-match / Recovery',c:'Entro 30min: frullato proteine + banana + latte. Pasto entro 2h: proteine magre + carboidrati complessi + verdure.',a:''}
+  ];
+  const mealsEN=[
+    {t:'Pre-match dinner (night before)',c:'First course: risotto (80–100g) with tomato sauce or four cheeses. Second course: baked oily fish or grilled white meat with vegetables. Fresh fruit.',a:'Alt: Spaghetti 100g with tomato sauce + fish/salad + 2 slices wholemeal bread. Fruit.'},
+    {t:'Breakfast (match day, 2–3h before)',c:'Low-fat milk, low-fat yogurt, cereals, fresh juice, banana, crackers. Savoury option: ham & cheese toast + scrambled eggs.',a:'Alt: Homemade shortcrust tart + Greek yogurt + 20g almonds/nuts + 1 fruit.'},
+    {t:'Lunch (3h before)',c:'Short pasta al dente (80–100g) with olive oil and parmesan. Grilled veal escalope. Dessert: 1 slice jam tart.',a:'Alt: Pasta with tomato sauce + bresaola or ham (100g) with parmesan.'},
+    {t:'Snack (max 1h before)',c:'Low-fat yogurt + 1 fruit, or fruit juice + fruit, or 4–5 plain biscuits (no cocoa/cream).',a:''},
+    {t:'Post-match / Recovery',c:'Within 30min: protein shake + banana + milk. Meal within 2h: lean protein + complex carbohydrates + vegetables.',a:''}
+  ];
+  const tipsIT=['Non saltare la colazione!','Dormi 7–8h per notte. A letto entro le 23.','Rispetta pasti e orari.','Evita bibite gassate e alcolici.','Contatta lo Staff per qualsiasi dubbio.','Segnala intolleranze e allergie.','Limita integratori non prescritti dallo staff.','Idratazione: almeno 2L/die, 500ml 2h prima.'];
+  const tipsEN=['Do not skip breakfast!','Sleep 7–8h per night. In bed by 11pm.','Respect meal times and schedules.','Avoid fizzy drinks and alcohol.','Contact the Staff with any questions.','Report intolerances and allergies.','Limit supplements not prescribed by staff.','Hydration: at least 2L/day, 500ml 2h before.'];
+  const meals = isEN ? mealsEN : mealsIT;
+  const tips = isEN ? tipsEN : tipsIT;
+  const subtitle = isEN ? 'Pre and post match nutritional guidelines' : 'Linee guida alimentari pre e post match';
+  const tipsLabel = isEN ? 'Key recommendations' : 'Consigli fondamentali';
+  const notesLabel = isEN ? 'Personal notes' : 'Note personalizzate';
+  const notesPlaceholder = isEN ? 'Intolerances, allergies, individual preferences...' : 'Intolleranze, allergie, preferenze individuali...';
+  const saveLabel = isEN ? '💾 Save notes' : '💾 Salva note';
+return sH('Nutrition Planning', subtitle)+
 `<div class="grid2"><div>${meals.map((m,i)=>`<div class="card"><div style="display:flex;gap:10px;align-items:flex-start"><div style="background:var(--pu-l);color:var(--pu-d);border-radius:20px;padding:4px 10px;font-size:12px;font-weight:600;white-space:nowrap;flex-shrink:0">${i+1}</div><div><div style="font-weight:500;font-size:13px;margin-bottom:5px">${m.t}</div><p style="font-size:12px;line-height:1.65;margin:0 0 4px">${m.c}</p>${m.a?`<p style="font-size:11px;color:var(--tx2);margin:0;border-top:.5px solid var(--bd);padding-top:5px;margin-top:5px">📌 ${m.a}</p>`:''}</div></div></div>`).join('')}</div>
-<div><div class="card" style="margin-bottom:12px"><div style="font-weight:500;font-size:13px;margin-bottom:8px">Consigli fondamentali</div>${tips.map((t,i)=>`<div style="display:flex;gap:8px;font-size:12px;padding:5px 0;border-bottom:.5px solid var(--bd);line-height:1.5"><span style="color:var(--pu);font-weight:600;flex-shrink:0">${i+1}.</span><span>${t}</span></div>`).join('')}</div>
-<div class="card"><div style="font-weight:500;font-size:13px;margin-bottom:8px">Note personalizzate</div><textarea id="nut-t" rows="8" style="resize:vertical;font-size:12px;line-height:1.5" placeholder="Intolleranze, allergie, preferenze individuali...">${S.nutritionNotes||''}</textarea><button class="primary" onclick="saveNut()" style="margin-top:8px">💾 Salva note</button></div></div></div>`;};
+<div><div class="card" style="margin-bottom:12px"><div style="font-weight:500;font-size:13px;margin-bottom:8px">${tipsLabel}</div>${tips.map((tip,i)=>`<div style="display:flex;gap:8px;font-size:12px;padding:5px 0;border-bottom:.5px solid var(--bd);line-height:1.5"><span style="color:var(--pu);font-weight:600;flex-shrink:0">${i+1}.</span><span>${tip}</span></div>`).join('')}</div>
+<div class="card"><div style="font-weight:500;font-size:13px;margin-bottom:8px">${notesLabel}</div><textarea id="nut-t" rows="8" style="resize:vertical;font-size:12px;line-height:1.5" placeholder="${notesPlaceholder}">${S.nutritionNotes||''}</textarea><button class="primary" onclick="saveNut()" style="margin-top:8px">${saveLabel}</button></div></div></div>`;};
 function saveNut(){S.nutritionNotes=document.getElementById('nut-t')?.value||'';save();alert('✅ Note salvate!');}
 
 // ══ WEIGHT ══
@@ -3243,32 +3271,35 @@ R.export=()=>sH('Esportazione Dati & Sicurezza','Esporta report leggibili in Exc
 </div>
 
 <div class="card" style="margin-top:14px;border-left:3px solid var(--pu)">
-  <div style="font-weight:700;font-size:14px;margin-bottom:10px">Sicurezza e Privacy dei dati</div>
+  <div style="font-weight:700;font-size:14px;margin-bottom:10px">${currentLang==='en'?'Data Security & Privacy':'Sicurezza e Privacy dei dati'}</div>
   <div style="font-size:12px;line-height:1.8;color:var(--tx2)">
-    <b>Dove sono salvati i tuoi dati:</b> esclusivamente nella memoria locale di questo dispositivo (localStorage del browser). Nessun dato viene mai inviato, sincronizzato o condiviso con server esterni, Anthropic, Performance Project o terze parti.<br><br>
+    ${currentLang==='en'?`<b>Where your data is stored:</b> exclusively in the local memory of this device (browser localStorage). No data is ever sent, synced or shared with external servers, Anthropic, Performance Project or third parties.<br><br>
+    <b>Redundant backup:</b> every save is written twice in separate memory slots, protecting you from accidental browser data corruption.<br><br>
+    <b>What is NEVER done:</b> no network calls with your data, no tracking, no third-party cookies, no automatic transmission.<br><br>
+    <b>Your responsibility:</b> if you clear browser data ("Clear browsing data") or uninstall the app, local data will be lost. Regularly export a backup (Excel/PDF above, or the system backup below) and keep it somewhere safe.`:`<b>Dove sono salvati i tuoi dati:</b> esclusivamente nella memoria locale di questo dispositivo (localStorage del browser). Nessun dato viene mai inviato, sincronizzato o condiviso con server esterni, Anthropic, Performance Project o terze parti.<br><br>
     <b>Backup ridondante:</b> ogni salvataggio viene scritto due volte in slot di memoria separati, per proteggerti da eventuali corruzioni accidentali del browser.<br><br>
     <b>Cosa NON viene mai fatto:</b> nessuna chiamata di rete con i tuoi dati, nessun tracciamento, nessun cookie di terze parti, nessuna trasmissione automatica.<br><br>
-    <b>Tua responsabilità:</b> se cancelli i dati del browser ("Cancella dati di navigazione") o disinstalli l'app, i dati locali vengono persi. Esporta regolarmente un backup (Excel/PDF qui sopra, oppure il backup di sistema sotto) e conservalo in un luogo sicuro.
+    <b>Tua responsabilità:</b> se cancelli i dati del browser ("Cancella dati di navigazione") o disinstalli l'app, i dati locali vengono persi. Esporta regolarmente un backup (Excel/PDF qui sopra, oppure il backup di sistema sotto) e conservalo in un luogo sicuro.`}
   </div>
 </div>
 
 <div class="card" style="margin-top:14px">
-  <div style="font-weight:700;font-size:14px;margin-bottom:10px">Backup di sistema (avanzato)</div>
-  <p style="font-size:12px;line-height:1.6;margin-bottom:12px;color:var(--tx2)">Backup tecnico completo per trasferire l'intero database tra dispositivi o ripristinarlo dopo una reinstallazione. Da usare solo se sai cosa stai facendo: non è un formato pensato per la lettura umana, usa Excel o PDF sopra per quello.</p>
+  <div style="font-weight:700;font-size:14px;margin-bottom:10px">${currentLang==='en'?'System backup (advanced)':'Backup di sistema (avanzato)'}</div>
+  <p style="font-size:12px;line-height:1.6;margin-bottom:12px;color:var(--tx2)">${currentLang==='en'?"Full technical backup for transferring the entire database between devices or restoring it after a reinstall. Use only if you know what you're doing: this format is not designed for human reading — use Excel or PDF above for that.":'Backup tecnico completo per trasferire l\'intero database tra dispositivi o ripristinarlo dopo una reinstallazione. Da usare solo se sai cosa stai facendo: non è un formato pensato per la lettura umana, usa Excel o PDF sopra per quello.'}</p>
   <div style="display:flex;gap:10px;flex-wrap:wrap">
-    <button class="secondary" onclick="exportData()" style="flex:1;min-width:160px">Backup di sistema (.json)</button>
-    <label for="imp-f" style="flex:1;min-width:160px;display:inline-flex;align-items:center;justify-content:center;background:transparent;border:1.5px solid var(--bd2);color:var(--tx2);border-radius:8px;padding:8px 16px;cursor:pointer;font-weight:500;font-size:13px">Ripristina da backup</label>
+    <button class="secondary" onclick="exportData()" style="flex:1;min-width:160px">${currentLang==='en'?'System backup (.json)':'Backup di sistema (.json)'}</button>
+    <label for="imp-f" style="flex:1;min-width:160px;display:inline-flex;align-items:center;justify-content:center;background:transparent;border:1.5px solid var(--bd2);color:var(--tx2);border-radius:8px;padding:8px 16px;cursor:pointer;font-weight:500;font-size:13px">${currentLang==='en'?'Restore from backup':'Ripristina da backup'}</label>
     <input id="imp-f" type="file" accept=".json" style="display:none" onchange="importData(event)">
   </div>
   <div style="font-size:11px;color:var(--tx3);margin-top:10px">Attenzione: il ripristino sovrascrive tutti i dati attualmente presenti sul dispositivo.</div>
 </div>
 
 <div class="card" style="margin-top:14px">
-  <div style="font-weight:500;font-size:13px;margin-bottom:8px">Come installare come app</div>
+  <div style="font-weight:500;font-size:13px;margin-bottom:8px">${currentLang==='en'?'How to install as an app':'Come installare come app'}</div>
   <div style="font-size:12px;line-height:1.7;color:var(--tx2)">
-    <b>iPhone/iPad:</b> Apri in Safari, Condividi, "Aggiungi a schermata Home"<br>
-    <b>Android:</b> Apri in Chrome, Menu, "Aggiungi a schermata Home"<br>
-    <b>PC/Mac:</b> Apri in Chrome, Menu, "Installa MoSy"
+    <b>iPhone/iPad:</b> ${currentLang==='en'?'Open in Safari, Share, "Add to Home Screen"':'Apri in Safari, Condividi, "Aggiungi a schermata Home"'}<br>
+    <b>Android:</b> ${currentLang==='en'?'Open in Chrome, Menu, "Add to Home Screen"':'Apri in Chrome, Menu, "Aggiungi a schermata Home"'}<br>
+    <b>PC/Mac:</b> ${currentLang==='en'?'Open in Chrome, Menu, "Install MoSy"':'Apri in Chrome, Menu, "Installa MoSy"'}
   </div>
 </div>`;
 
@@ -3474,7 +3505,7 @@ async function exportPDF(){
       checkPage(15);
       doc.setFontSize(11);
       doc.setTextColor(227,30,36);
-      doc.text('Ultime sessioni di allenamento',14,y); y+=6;
+      doc.text(currentLang==='en'?'Latest training sessions':'Ultime sessioni di allenamento',14,y); y+=6;
       doc.setFontSize(8);
       doc.setTextColor(50,50,50);
       athTlm.forEach(e=>{
@@ -3608,34 +3639,34 @@ R.feedback=()=>{
       ${inp('fb-date','Data','date',today())}
       <div><label>Tipo di feedback</label>
       <select id="fb-type" style="margin-bottom:10px;font-size:12px">
-        <optgroup label="── BENESSERE">
-          <option value="benessere_gen">Benessere generale</option>
-          <option value="carico_alto">Carico percepito alto</option>
-          <option value="affaticamento">Affaticamento / Stanchezza</option>
-          <option value="sonno">Problemi di sonno</option>
-          <option value="dolore">Dolore / Fastidio fisico</option>
+        <optgroup label="${currentLang==='en'?'── WELLBEING':'── BENESSERE'}">
+          <option value="benessere_gen">${currentLang==='en'?'General wellbeing':'Benessere generale'}</option>
+          <option value="carico_alto">${currentLang==='en'?'High perceived load':'Carico percepito alto'}</option>
+          <option value="affaticamento">${currentLang==='en'?'Fatigue / Tiredness':'Affaticamento / Stanchezza'}</option>
+          <option value="sonno">${currentLang==='en'?'Sleep issues':'Problemi di sonno'}</option>
+          <option value="dolore">${currentLang==='en'?'Pain / Physical discomfort':'Dolore / Fastidio fisico'}</option>
         </optgroup>
-        <optgroup label="── ALLENAMENTO">
-          <option value="sessione_ok">Sessione completata ✓</option>
-          <option value="sessione_parziale">Sessione completata parzialmente</option>
-          <option value="sessione_saltata">Sessione saltata</option>
-          <option value="progressi">Progressi percepiti</option>
-          <option value="difficolta">Difficoltà con esercizio</option>
+        <optgroup label="${currentLang==='en'?'── TRAINING':'── ALLENAMENTO'}">
+          <option value="sessione_ok">${currentLang==='en'?'Session completed ✓':'Sessione completata ✓'}</option>
+          <option value="sessione_parziale">${currentLang==='en'?'Session partially completed':'Sessione completata parzialmente'}</option>
+          <option value="sessione_saltata">${currentLang==='en'?'Session skipped':'Sessione saltata'}</option>
+          <option value="progressi">${currentLang==='en'?'Perceived progress':'Progressi percepiti'}</option>
+          <option value="difficolta">${currentLang==='en'?'Difficulty with exercise':'Difficoltà con esercizio'}</option>
         </optgroup>
-        <optgroup label="── NUTRIZIONE / RECUPERO">
-          <option value="nutrizione">Nota nutrizionale</option>
-          <option value="recupero">Recupero post-sessione</option>
-          <option value="idratazione">Idratazione</option>
+        <optgroup label="${currentLang==='en'?'── NUTRITION / RECOVERY':'── NUTRIZIONE / RECUPERO'}">
+          <option value="nutrizione">${currentLang==='en'?'Nutritional note':'Nota nutrizionale'}</option>
+          <option value="recupero">${currentLang==='en'?'Post-session recovery':'Recupero post-sessione'}</option>
+          <option value="idratazione">${currentLang==='en'?'Hydration':'Idratazione'}</option>
         </optgroup>
-        <optgroup label="── MOTIVAZIONE">
-          <option value="motivazione_alta">Motivazione alta 🔥</option>
-          <option value="motivazione_bassa">Motivazione bassa</option>
-          <option value="stress_extra">Stress extra-sportivo</option>
+        <optgroup label="${currentLang==='en'?'── MOTIVATION':'── MOTIVAZIONE'}">
+          <option value="motivazione_alta">${currentLang==='en'?'High motivation 🔥':'Motivazione alta 🔥'}</option>
+          <option value="motivazione_bassa">${currentLang==='en'?'Low motivation':'Motivazione bassa'}</option>
+          <option value="stress_extra">${currentLang==='en'?'Extra-sport stress':'Stress extra-sportivo'}</option>
         </optgroup>
-        <optgroup label="── ALTRO">
-          <option value="domanda">Domanda al coach</option>
-          <option value="infortunio">Segnalazione infortunio</option>
-          <option value="altro">Altro</option>
+        <optgroup label="${currentLang==='en'?'── OTHER':'── ALTRO'}">
+          <option value="domanda">${currentLang==='en'?'Question to coach':'Domanda al coach'}</option>
+          <option value="infortunio">${currentLang==='en'?'Injury report':'Segnalazione infortunio'}</option>
+          <option value="altro">${currentLang==='en'?'Other':'Altro'}</option>
         </optgroup>
       </select></div>
       <div><label>Valutazione soggettiva (1–10)</label>
@@ -3667,9 +3698,9 @@ R.feedback=()=>{
         </div>
       </div>
       <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
-        <button class="secondary" style="font-size:11px" id="fb-filter-all" onclick="filterFB('all')">Tutti (${S.feedbacks.length})</button>
-        <button class="secondary" style="font-size:11px" id="fb-filter-unread" onclick="filterFB('unread')">Non letti (${unread})</button>
-        <button class="secondary" style="font-size:11px" id="fb-filter-alert" onclick="filterFB('alert')">⚠️ Segnalazioni</button>
+        <button class="secondary" style="font-size:11px" id="fb-filter-all" onclick="filterFB('all')">${currentLang==='en'?'All':'Tutti'} (${S.feedbacks.length})</button>
+        <button class="secondary" style="font-size:11px" id="fb-filter-unread" onclick="filterFB('unread')">${currentLang==='en'?'Unread':'Non letti'} (${unread})</button>
+        <button class="secondary" style="font-size:11px" id="fb-filter-alert" onclick="filterFB('alert')">⚠️ ${currentLang==='en'?'Alerts':'Segnalazioni'}</button>
       </div>
       <div id="fb-coach-list" style="max-height:520px;overflow-y:auto">${renderFBList('all')}</div>
     </div>
@@ -3680,14 +3711,14 @@ R.feedback=()=>{
   <div class="card" style="margin-top:14px">
     <div style="font-weight:700;font-size:14px;margin-bottom:12px;text-transform:uppercase;letter-spacing:.5px">📊 Statistiche feedback squadra</div>
     <div class="grid4">
-      ${mC('Feedback totali',S.feedbacks.length)}
-      ${mC('Atleti attivi',new Set(S.feedbacks.map(f=>f.athleteId)).size)}
-      ${mC('Rating medio',S.feedbacks.length?(S.feedbacks.reduce((s,f)=>s+(f.rating||0),0)/S.feedbacks.length).toFixed(1):'—','/10','var(--pu)')}
-      ${mC('Non letti',unread,'',unread>0?'var(--erT)':'')}
+      ${mC(currentLang==='en'?'Total feedback':'Feedback totali',S.feedbacks.length)}
+      ${mC(currentLang==='en'?'Active athletes':'Atleti attivi',new Set(S.feedbacks.map(f=>f.athleteId)).size)}
+      ${mC(currentLang==='en'?'Avg rating':'Rating medio',S.feedbacks.length?(S.feedbacks.reduce((s,f)=>s+(f.rating||0),0)/S.feedbacks.length).toFixed(1):'—','/10','var(--pu)')}
+      ${mC(currentLang==='en'?'Unread':'Non letti',unread,'',unread>0?'var(--erT)':'')}
     </div>
     ${S.feedbacks.length>=2?`<div style="margin-top:12px">
-      <div style="font-size:12px;font-weight:600;color:var(--tx2);margin-bottom:8px">Ultimi 7 giorni per atleta</div>
-      ${tbl(['Atleta','Ultimi feedback','Rating medio','Tipo frequente'],
+      <div style="font-size:12px;font-weight:600;color:var(--tx2);margin-bottom:8px">${currentLang==='en'?'Last 7 days per athlete':'Ultimi 7 giorni per atleta'}</div>
+      ${tbl(currentLang==='en'?['Athlete','Latest feedback','Avg rating','Most frequent type']:['Atleta','Ultimi feedback','Rating medio','Tipo frequente'],
         Object.entries(S.feedbacks.slice(-50).reduce((acc,f)=>{
           if(!acc[f.athleteName])acc[f.athleteName]={count:0,ratings:[],types:{}};
           acc[f.athleteName].count++;
@@ -3710,8 +3741,9 @@ function renderFBList(filter){
   const alertTypes=['dolore','infortunio','carico_alto','affaticamento','sessione_saltata','motivazione_bassa','stress_extra'];
   if(filter==='unread')fbs=fbs.filter(f=>!f.read);
   if(filter==='alert')fbs=fbs.filter(f=>alertTypes.includes(f.type)||f.rating<=4);
-  if(!fbs.length)return '<p style="font-size:12px;color:var(--tx2);padding:12px 0">Nessun feedback da mostrare.</p>';
-  const typeLabels={benessere_gen:'Benessere generale',carico_alto:'Carico alto ⚠️',affaticamento:'Affaticamento',sonno:'Sonno',dolore:'Dolore 🩺',sessione_ok:'Sessione OK ✓',sessione_parziale:'Sessione parziale',sessione_saltata:'Sessione saltata ✗',progressi:'Progressi 📈',difficolta:'Difficoltà esercizio',nutrizione:'Nutrizione',recupero:'Recupero',idratazione:'Idratazione',motivazione_alta:'Motivazione alta 🔥',motivazione_bassa:'Motivazione bassa',stress_extra:'Stress extra-sportivo',domanda:'Domanda al coach ❓',infortunio:'Infortunio 🚨',altro:'Altro'};
+  if(!fbs.length)return `<p style="font-size:12px;color:var(--tx2);padding:12px 0">${currentLang==='en'?'No feedback to show.':'Nessun feedback da mostrare.'}</p>`;
+  const _enFB=currentLang==='en';
+  const typeLabels=_enFB?{benessere_gen:'General wellbeing',carico_alto:'High load ⚠️',affaticamento:'Fatigue',sonno:'Sleep',dolore:'Pain 🩺',sessione_ok:'Session OK ✓',sessione_parziale:'Partial session',sessione_saltata:'Session skipped ✗',progressi:'Progress 📈',difficolta:'Exercise difficulty',nutrizione:'Nutrition',recupero:'Recovery',idratazione:'Hydration',motivazione_alta:'High motivation 🔥',motivazione_bassa:'Low motivation',stress_extra:'Extra-sport stress',domanda:'Question to coach ❓',infortunio:'Injury report 🚨',altro:'Other'}:{benessere_gen:'Benessere generale',carico_alto:'Carico alto ⚠️',affaticamento:'Affaticamento',sonno:'Sonno',dolore:'Dolore 🩺',sessione_ok:'Sessione OK ✓',sessione_parziale:'Sessione parziale',sessione_saltata:'Sessione saltata ✗',progressi:'Progressi 📈',difficolta:'Difficoltà esercizio',nutrizione:'Nutrizione',recupero:'Recupero',idratazione:'Idratazione',motivazione_alta:'Motivazione alta 🔥',motivazione_bassa:'Motivazione bassa',stress_extra:'Stress extra-sportivo',domanda:'Domanda al coach ❓',infortunio:'Infortunio 🚨',altro:'Altro'};
   // CORREZIONE: utilizzata la variabile primaryAlertTypes per evitare conflitto
   const primaryAlertTypes=['dolore','infortunio','carico_alto','sessione_saltata'];
   return fbs.slice(0,30).map(f=>{
@@ -3731,7 +3763,7 @@ function renderFBList(filter){
       </div>
       ${f.msg?`<div style="font-size:12px;color:var(--tx);line-height:1.6;margin-top:4px;padding:8px;background:var(--bg3);border-radius:6px">"${esc(f.msg)}"</div>`:''}
       <div style="font-size:11px;color:var(--tx2);margin-top:5px;display:flex;gap:10px">
-        ${f.sleep?`<span>💤 ${f.sleep}h sonno</span>`:''}
+        ${f.sleep?`<span>💤 ${f.sleep}h ${currentLang==='en'?'sleep':'sonno'}</span>`:''}
         ${f.hrv?`<span>📡 HRV: ${f.hrv}</span>`:''}
       </div>
     </div>`;
@@ -4054,47 +4086,72 @@ INI.functional=()=>{
 };
 
 R.romei=()=>{
-  return sH('ROMEI Model','Relation of Ongoing Monitored Exercise in Individual — Montini & Rocchi (2022)')+
-  `<div class="card" style="margin-bottom:14px">
-    <p style="font-size:12px;color:var(--tx2);line-height:1.7">
-      Il modello <b>ROMEI</b> (Montini, M. &amp; Rocchi, J.E., 2022, <i>Journal of Strength and Conditioning Research</i>, 36(9):2566–2572)
+  const isEN = currentLang==='en';
+  const romeiIntro = isEN
+    ? `The <b>ROMEI</b> model (Montini, M. &amp; Rocchi, J.E., 2022, <i>Journal of Strength and Conditioning Research</i>, 36(9):2566–2572)
+      analyses the individual relationship between external load (estimated Energy Expenditure, EE) and perceived internal load (session-RPE)
+      through an athlete-specific linear regression. The standard error of the estimate (SEE) defines reference
+      bands around the regression line: sessions falling <b>outside the bands</b> represent an anomalous perceived response
+      relative to the athlete's habitual pattern (possible fatigue, extra-sport stress, low motivation, or — conversely —
+      an underestimation of effort). It is an <b>individual</b> analysis, not comparative between athletes.`
+    : `Il modello <b>ROMEI</b> (Montini, M. &amp; Rocchi, J.E., 2022, <i>Journal of Strength and Conditioning Research</i>, 36(9):2566–2572)
       analizza la relazione individuale tra carico esterno (Energy Expenditure stimata, EE) e carico interno percepito (session-RPE)
       attraverso una regressione lineare specifica per ciascun atleta. L'errore standard della regressione (SEE) definisce delle bande
       di riferimento attorno alla retta: le sessioni che cadono <b>fuori dalle bande</b> rappresentano una risposta percepita anomala
       rispetto al pattern abituale dell'atleta (possibile affaticamento, stress extra-sportivo, scarsa motivazione, o — all'opposto —
-      una sottostima dello sforzo). È un'analisi <b>individuale</b>, non comparativa tra atleti diversi.
-    </p>
-  </div>
-  <div class="grid2">
-  <div class="card">
-    ${asel('romei-ath')}
-    <div style="font-size:12px;font-weight:600;color:var(--tx2);margin:10px 0 6px;text-transform:uppercase">Stima Energy Expenditure (EE)</div>
-    <p style="font-size:11px;color:var(--tx2);margin-bottom:10px">EE è stimata dalle sessioni TLM salvate con formula MET standard: EE(kcal) = (MET × peso corporeo(kg) / 60) × durata(min). Il MET è derivato dall'RPE di sessione secondo equivalenze ACSM.</p>
-    <div id="romei-stats"></div>
-    <button class="primary" onclick="calcRomei()" style="width:100%;margin-top:10px">📐 Calcola modello ROMEI</button>
-  </div>
-  <div class="card">
-    <div style="font-weight:700;font-size:13px;margin-bottom:10px;text-transform:uppercase">Risultati regressione individuale</div>
-    <div id="romei-result"><p style="font-size:12px;color:var(--tx2)">Seleziona un atleta con almeno 5 sessioni TLM salvate e calcola il modello.</p></div>
-  </div>
-  </div>
-  <div class="card" style="margin-top:14px">
-    <div style="font-weight:700;font-size:13px;margin-bottom:8px;text-transform:uppercase">Grafico EE · sRPE con bande ±1 SEE / ±2 SEE</div>
-    <div id="romei-chart"></div>
-  </div>
-  <div class="card" style="margin-top:14px">
-    <div style="font-weight:700;font-size:13px;margin-bottom:8px;text-transform:uppercase">Dettaglio sessioni analizzate</div>
-    <div id="romei-sessions-table"></div>
-  </div>
-  <div class="card" style="margin-top:14px">
-    <div style="font-weight:600;font-size:12px;margin-bottom:8px">Interpretazione pratica</div>
-    <div style="font-size:11px;color:var(--tx2);line-height:1.8">
+      una sottostima dello sforzo). È un'analisi <b>individuale</b>, non comparativa tra atleti diversi.`;
+  const eeLabel = isEN ? 'Energy Expenditure (EE) Estimate' : 'Stima Energy Expenditure (EE)';
+  const eeDesc = isEN
+    ? 'EE is estimated from saved TLM sessions using the standard MET formula: EE(kcal) = (MET × body weight(kg) / 60) × duration(min). MET is derived from session RPE using ACSM equivalences.'
+    : "EE è stimata dalle sessioni TLM salvate con formula MET standard: EE(kcal) = (MET × peso corporeo(kg) / 60) × durata(min). Il MET è derivato dall'RPE di sessione secondo equivalenze ACSM.";
+  const calcBtn = isEN ? '📐 Calculate ROMEI model' : '📐 Calcola modello ROMEI';
+  const regLabel = isEN ? 'Individual regression results' : 'Risultati regressione individuale';
+  const selectMsg = isEN
+    ? 'Select an athlete with at least 5 saved TLM sessions and calculate the model.'
+    : 'Seleziona un atleta con almeno 5 sessioni TLM salvate e calcola il modello.';
+  const chartLabel = isEN ? 'EE · sRPE chart with ±1 SEE / ±2 SEE bands' : 'Grafico EE · sRPE con bande ±1 SEE / ±2 SEE';
+  const tableLabel = isEN ? 'Analysed sessions detail' : 'Dettaglio sessioni analizzate';
+  const interpLabel = isEN ? 'Practical interpretation' : 'Interpretazione pratica';
+  const interp = isEN ? `
+      <b>Within ±1 SEE:</b> perceived response consistent with the athlete's habitual pattern.<br>
+      <b>Between ±1 and ±2 SEE:</b> moderate deviation, to be monitored in subsequent sessions.<br>
+      <b>Beyond ±2 SEE (above the line):</b> sRPE much higher than expected — possible fatigue, stress, insufficient recovery.<br>
+      <b>Beyond ±2 SEE (below the line):</b> sRPE much lower than expected — possible underestimation of effort or excellent form.<br>
+      <b>Line slope over time:</b> a progressive increase in slope across microcycles (as observed in the original study) may indicate increasing perceived effort at equal external load — a useful signal of accumulated fatigue.`
+    : `
       <b>Dentro ±1 SEE:</b> risposta percepita coerente con il pattern abituale dell'atleta.<br>
       <b>Tra ±1 e ±2 SEE:</b> scostamento moderato, da monitorare nelle sessioni successive.<br>
       <b>Oltre ±2 SEE (sopra la retta):</b> sRPE molto più alto del previsto — possibile affaticamento, stress, recupero insufficiente.<br>
       <b>Oltre ±2 SEE (sotto la retta):</b> sRPE molto più basso del previsto — possibile sottostima dello sforzo o ottimo stato di forma.<br>
-      <b>Pendenza della retta (slope) nel tempo:</b> un aumento progressivo della pendenza tra microcicli (come osservato nello studio originale) può indicare un incremento della percezione dello sforzo a parità di carico esterno, utile segnale di fatica accumulata.
-    </div>
+      <b>Pendenza della retta (slope) nel tempo:</b> un aumento progressivo della pendenza tra microcicli (come osservato nello studio originale) può indicare un incremento della percezione dello sforzo a parità di carico esterno, utile segnale di fatica accumulata.`;
+  return sH('ROMEI Model','Relation of Ongoing Monitored Exercise in Individual — Montini & Rocchi (2022)')+
+  `<div class="card" style="margin-bottom:14px">
+    <p style="font-size:12px;color:var(--tx2);line-height:1.7">${romeiIntro}</p>
+  </div>
+  <div class="grid2">
+  <div class="card">
+    ${asel('romei-ath')}
+    <div style="font-size:12px;font-weight:600;color:var(--tx2);margin:10px 0 6px;text-transform:uppercase">${eeLabel}</div>
+    <p style="font-size:11px;color:var(--tx2);margin-bottom:10px">${eeDesc}</p>
+    <div id="romei-stats"></div>
+    <button class="primary" onclick="calcRomei()" style="width:100%;margin-top:10px">${calcBtn}</button>
+  </div>
+  <div class="card">
+    <div style="font-weight:700;font-size:13px;margin-bottom:10px;text-transform:uppercase">${regLabel}</div>
+    <div id="romei-result"><p style="font-size:12px;color:var(--tx2)">${selectMsg}</p></div>
+  </div>
+  </div>
+  <div class="card" style="margin-top:14px">
+    <div style="font-weight:700;font-size:13px;margin-bottom:8px;text-transform:uppercase">${chartLabel}</div>
+    <div id="romei-chart"></div>
+  </div>
+  <div class="card" style="margin-top:14px">
+    <div style="font-weight:700;font-size:13px;margin-bottom:8px;text-transform:uppercase">${tableLabel}</div>
+    <div id="romei-sessions-table"></div>
+  </div>
+  <div class="card" style="margin-top:14px">
+    <div style="font-weight:600;font-size:12px;margin-bottom:8px">${interpLabel}</div>
+    <div style="font-size:11px;color:var(--tx2);line-height:1.8">${interp}</div>
   </div>`;
 };
 
@@ -4123,8 +4180,8 @@ function updRomeiStats(){
   const el = document.getElementById('romei-stats');
   if(el){
     el.innerHTML = `<div class="grid2" style="gap:8px">
-      ${mC('Sessioni disponibili',sessions.length)}
-      ${mC('Peso corporeo',athlete?athlete.weight+'kg':'—')}
+      ${mC(currentLang==='en'?'Available sessions':'Sessioni disponibili',sessions.length)}
+      ${mC(currentLang==='en'?'Body weight':'Peso corporeo',athlete?athlete.weight+'kg':'—')}
     </div>
     ${sessions.length<5?`<p style="font-size:11px;color:var(--erT);margin-top:8px">⚠️ Servono almeno 5 sessioni con durata e RPE per una regressione affidabile (attualmente ${sessions.length}).</p>`:''}`;
   }
@@ -4158,7 +4215,7 @@ function calcRomei(){
     .sort((a,b)=>a.date.localeCompare(b.date));
 
   if(sessions.length<5){
-    document.getElementById('romei-result').innerHTML = '<p style="font-size:12px;color:var(--erT)">Servono almeno 5 sessioni con durata e RPE registrati per questo atleta.</p>';
+    document.getElementById('romei-result').innerHTML = `<p style="font-size:12px;color:var(--erT)">${currentLang==='en'?'At least 5 sessions with duration and RPE recorded for this athlete.':'Servono almeno 5 sessioni con durata e RPE registrati per questo atleta.'}</p>`;
     document.getElementById('romei-chart').innerHTML = '';
     document.getElementById('romei-sessions-table').innerHTML = '';
     return;
@@ -4173,18 +4230,19 @@ function calcRomei(){
 
   const reg = linearRegressionSEE(points, 'ee', 'srpe');
   if(!reg){
-    document.getElementById('romei-result').innerHTML = '<p style="font-size:12px;color:var(--erT)">Impossibile calcolare la regressione (dati insufficientemente variabili).</p>';
+    document.getElementById('romei-result').innerHTML = `<p style="font-size:12px;color:var(--erT)">${currentLang==='en'?'Unable to calculate regression (data insufficiently variable).':'Impossibile calcolare la regressione (dati insufficientemente variabili).'}</p>`;
     return;
   }
 
+  const _enRes=currentLang==='en';
   document.getElementById('romei-result').innerHTML = `
     <div class="grid2" style="gap:8px;margin-bottom:10px">
       ${mC('Slope (m)','<span>'+reg.slope.toFixed(3)+'</span>','sRPE/kcal','var(--pu)')}
-      ${mC('Intercetta','<span>'+reg.intercept.toFixed(1)+'</span>','')}
+      ${mC(_enRes?'Intercept':'Intercetta','<span>'+reg.intercept.toFixed(1)+'</span>','')}
       ${mC('SEE','<span>'+reg.see.toFixed(1)+'</span>','sRPE')}
       ${mC('R²','<span>'+reg.r2.toFixed(3)+'</span>','')}
     </div>
-    <p style="font-size:11px;color:var(--tx2);line-height:1.6">Equazione: sRPE = ${reg.slope.toFixed(3)} × EE + ${reg.intercept.toFixed(1)}. ${reg.r2<0.5?'⚠️ R² basso: la relazione individuale è debole, interpretare le bande con cautela.':'Relazione individuale solida (R²≥0.5).'}</p>
+    <p style="font-size:11px;color:var(--tx2);line-height:1.6">${_enRes?'Equation':'Equazione'}: sRPE = ${reg.slope.toFixed(3)} × EE + ${reg.intercept.toFixed(1)}. ${reg.r2<0.5?(_enRes?'⚠️ Low R²: weak individual relationship, interpret bands with caution.':'⚠️ R² basso: la relazione individuale è debole, interpretare le bande con cautela.'):(_enRes?'Solid individual relationship (R²≥0.5).':'Relazione individuale solida (R²≥0.5).')}</p>
   `;
 
   document.getElementById('romei-chart').innerHTML = renderRomeiChart(points, reg);
@@ -4197,12 +4255,13 @@ function calcRomei(){
   });
 
   document.getElementById('romei-sessions-table').innerHTML = tbl(
-    ['Data','Tipo','EE (kcal)','sRPE reale','sRPE atteso','Scostamento (z)','Stato'],
+    currentLang==='en'?['Date','Type','EE (kcal)','Actual sRPE','Expected sRPE','Deviation (z)','Status']:['Data','Tipo','EE (kcal)','sRPE reale','sRPE atteso','Scostamento (z)','Stato'],
     outliers.slice().reverse().map(o=>{
       const absZ = Math.abs(o.z);
-      const status = absZ>2 ? bdg(o.z>0?'⚠️ Molto sopra atteso':'⚠️ Molto sotto atteso','er')
-        : absZ>1 ? bdg('Moderato scostamento','wa')
-        : bdg('Nella norma','ok');
+      const _enR=currentLang==='en';
+      const status = absZ>2 ? bdg(o.z>0?(_enR?'⚠️ Well above expected':'⚠️ Molto sopra atteso'):(_enR?'⚠️ Well below expected':'⚠️ Molto sotto atteso'),'er')
+        : absZ>1 ? bdg(_enR?'Moderate deviation':'Moderato scostamento','wa')
+        : bdg(_enR?'Within norm':'Nella norma','ok');
       return [o.date, o.type, o.ee.toFixed(0), o.srpe, o.predicted.toFixed(0), o.z.toFixed(2), status];
     })
   );
@@ -4231,10 +4290,10 @@ function renderRomeiChart(points, reg){
     svg += `<line x1="${padL-4}" y1="${y}" x2="${padL}" y2="${y}" stroke="var(--bd2)" stroke-width="1"/>`;
     svg += `<text x="${padL-7}" y="${y+3}" font-size="8" fill="var(--tx2)" text-anchor="end">${val.toFixed(0)}</text>`;
   }
-  svg += `<text x="${padL+chartW/2}" y="${H-4}" font-size="9" fill="var(--tx2)" text-anchor="middle">EE stimata (kcal)</text>`;
-  svg += `<text x="10" y="${padT+chartH/2}" font-size="9" fill="var(--tx2)" text-anchor="middle" transform="rotate(-90 10 ${padT+chartH/2})">sRPE (UA)</text>`;
+  svg += `<text x="${padL+chartW/2}" y="${H-4}" font-size="9" fill="var(--tx2)" text-anchor="middle">${currentLang==='en'?'Estimated EE (kcal)':'EE stimata (kcal)'}</text>`;
+  svg += `<text x="10" y="${padT+chartH/2}" font-size="9" fill="var(--tx2)" text-anchor="middle" transform="rotate(-90 10 ${padT+chartH/2})">sRPE (AU)</text>`;
 
-  // Bande ±2 SEE (più chiare) e ±1 SEE
+  // Bande +/-2 SEE e +/-1 SEE
   const x1=0, x2=maxEE;
   const yLine1=reg.slope*x1+reg.intercept, yLine2=reg.slope*x2+reg.intercept;
   const ySee2Hi1=yLine1+2*reg.see, ySee2Hi2=yLine2+2*reg.see;
@@ -4258,9 +4317,10 @@ function renderRomeiChart(points, reg){
     svg += `<circle cx="${xScale(p.ee)}" cy="${yScale(p.srpe)}" r="4" fill="${color}" stroke="#fff" stroke-width="1"/>`;
   });
 
-  svg += `<rect x="${W-150}" y="10" width="10" height="10" fill="#059669"/><text x="${W-135}" y="19" font-size="8" fill="var(--tx2)">Nella norma</text>`;
-  svg += `<rect x="${W-150}" y="23" width="10" height="10" fill="#f59e0b"/><text x="${W-135}" y="32" font-size="8" fill="var(--tx2)">Scostamento moderato</text>`;
-  svg += `<rect x="${W-150}" y="36" width="10" height="10" fill="#e31e24"/><text x="${W-135}" y="45" font-size="8" fill="var(--tx2)">Fuori ±2 SEE</text>`;
+  const _enChart=currentLang==='en';
+  svg += `<rect x="${W-150}" y="10" width="10" height="10" fill="#059669"/><text x="${W-135}" y="19" font-size="8" fill="var(--tx2)">${_enChart?'Within norm':'Nella norma'}</text>`;
+  svg += `<rect x="${W-150}" y="23" width="10" height="10" fill="#f59e0b"/><text x="${W-135}" y="32" font-size="8" fill="var(--tx2)">${_enChart?'Moderate deviation':'Scostamento moderato'}</text>`;
+  svg += `<rect x="${W-150}" y="36" width="10" height="10" fill="#e31e24"/><text x="${W-135}" y="45" font-size="8" fill="var(--tx2)">${_enChart?'Outside ±2 SEE':'Fuori ±2 SEE'}</text>`;
   svg += '</svg>';
   return svg;
 }
